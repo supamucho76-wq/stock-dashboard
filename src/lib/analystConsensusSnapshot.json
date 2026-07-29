@@ -1,0 +1,14 @@
+{
+  "asOf": "2026-07-29",
+  "consensus": "買い",
+  "targetPrice": 116769,
+  "previousWeekTargetPrice": 113988,
+  "ratings": {
+    "strongBuy": 9,
+    "buy": 5,
+    "neutral": 1,
+    "sell": 1,
+    "strongSell": 0
+  },
+  "sourceUrl": "https://minkabu.jp/stock/285A/analyst_consensus"
+}

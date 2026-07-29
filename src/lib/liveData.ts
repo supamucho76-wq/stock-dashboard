@@ -8,6 +8,7 @@ import {
   generateKioxiaBundle,
   type KioxiaBundle,
 } from "./kioxiaData";
+import analystConsensusSnapshot from "./analystConsensusSnapshot.json";
 
 const KIOXIA_IR_URL = "https://www.kioxia-holdings.com/ja-jp/ir/news.html";
 const KIOXIA_YAHOO_CHART_URL =
@@ -98,7 +99,7 @@ export type AnalystConsensusData = {
     strongSell: number;
   } | null;
   sourceUrl: string;
-  state: "live" | "unavailable";
+  state: "live" | "snapshot" | "unavailable";
 };
 
 const FALLBACK_MARGIN_DATA: MarginBalanceData = {
@@ -123,14 +124,9 @@ const FALLBACK_SHORT_POSITION_SOURCE: ShortPositionSource = {
   state: "fallback",
 };
 
-const UNAVAILABLE_ANALYST_CONSENSUS: AnalystConsensusData = {
-  asOf: null,
-  consensus: null,
-  targetPrice: null,
-  previousWeekTargetPrice: null,
-  ratings: null,
-  sourceUrl: MINKABU_ANALYST_CONSENSUS_URL,
-  state: "unavailable",
+const SNAPSHOT_ANALYST_CONSENSUS: AnalystConsensusData = {
+  ...analystConsensusSnapshot,
+  state: "snapshot",
 };
 
 type OfficialIrResult = {
@@ -398,7 +394,7 @@ async function getMinkabuAnalystConsensus(): Promise<AnalystConsensusData> {
   for (const result of results) {
     if (result.status === "fulfilled" && result.value) return result.value;
   }
-  return UNAVAILABLE_ANALYST_CONSENSUS;
+  return SNAPSHOT_ANALYST_CONSENSUS;
 }
 
 function timestampToTokyoDate(timestamp: number): string {

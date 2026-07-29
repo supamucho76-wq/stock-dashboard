@@ -62,22 +62,22 @@ export default function AnalystPanel({
   consensus: AnalystConsensusData;
   currentPrice: number;
 }) {
-  const isLive =
-    consensus.state === "live" &&
+  const hasConsensus =
+    consensus.state !== "unavailable" &&
     consensus.targetPrice != null &&
     consensus.previousWeekTargetPrice != null &&
     consensus.ratings != null &&
     consensus.asOf != null;
-  const targetGap = isLive ? consensus.targetPrice! - currentPrice : 0;
-  const targetGapPercent = isLive && currentPrice > 0 ? (targetGap / currentPrice) * 100 : 0;
-  const weeklyChange = isLive
+  const targetGap = hasConsensus ? consensus.targetPrice! - currentPrice : 0;
+  const targetGapPercent = hasConsensus && currentPrice > 0 ? (targetGap / currentPrice) * 100 : 0;
+  const weeklyChange = hasConsensus
     ? consensus.targetPrice! - consensus.previousWeekTargetPrice!
     : 0;
   const weeklyChangePercent =
-    isLive && consensus.previousWeekTargetPrice! > 0
+    hasConsensus && consensus.previousWeekTargetPrice! > 0
       ? (weeklyChange / consensus.previousWeekTargetPrice!) * 100
       : 0;
-  const ratingCount = isLive
+  const ratingCount = hasConsensus
     ? Object.values(consensus.ratings!).reduce((sum, value) => sum + value, 0)
     : 0;
 
@@ -98,12 +98,14 @@ export default function AnalystPanel({
         </a>
       </div>
 
-      {isLive ? (
+      {hasConsensus ? (
         <div className="rounded-lg border border-[var(--panel-border-strong)] bg-[rgba(67,232,255,0.035)] p-4 mb-5">
           <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
             <div className="flex items-center gap-2">
               <p className="text-xs text-[var(--cyan)]">市場コンセンサス</p>
-              <span className="mono text-[0.55rem] text-[var(--neon-soft)]">AUTO・6H</span>
+              <span className="mono text-[0.55rem] text-[var(--neon-soft)]">
+                {consensus.state === "live" ? "AUTO・6H" : "AUTO・DAILY"}
+              </span>
             </div>
             <a
               href={consensus.sourceUrl}
@@ -169,7 +171,7 @@ export default function AnalystPanel({
           </div>
 
           <p className="text-[0.58rem] text-[var(--text-faint)] leading-relaxed mt-4">
-            情報会社が集計した外部コンセンサスであり、株価のリアルタイム値ではありません。目標株価は将来の成果を保証しません。
+            情報会社が集計した外部コンセンサスです。平日18:30ごろに更新確認し、基準日付きの最終取得値を表示します。目標株価は将来の成果を保証しません。
           </p>
         </div>
       ) : (
