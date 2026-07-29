@@ -24,12 +24,12 @@ export default async function Home() {
     await getKioxiaDashboardData();
 
   return (
-    <div className="max-w-[1400px] mx-auto px-6 py-8 flex flex-col gap-6">
+    <div className="max-w-[1680px] mx-auto px-3 sm:px-6 xl:px-8 py-6 sm:py-8 flex flex-col gap-6">
       <DataSourceBar meta={meta} />
 
-      <TodaySummaryCard today={today} isLive={meta.ir.state === "live"} />
-
       <TradingViewMarketPanel />
+
+      <TodaySummaryCard today={today} isLive={meta.ir.state === "live"} />
 
       <PtsPanel />
 

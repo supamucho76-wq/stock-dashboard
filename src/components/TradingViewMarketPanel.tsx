@@ -55,7 +55,7 @@ export default function TradingViewMarketPanel() {
         backgroundColor: "rgba(0, 0, 0, 0)",
         gridColor: "rgba(57, 255, 148, 0.06)",
         withdateranges: true,
-        hide_side_toolbar: false,
+        hide_side_toolbar: true,
         allow_symbol_change: false,
         save_image: false,
         calendar: false,
@@ -70,22 +70,41 @@ export default function TradingViewMarketPanel() {
   }, []);
 
   return (
-    <section id="market-data" className="glass-panel overflow-hidden" aria-labelledby="market-data-heading">
-      <div className="px-5 pt-5">
+    <section
+      id="market-data"
+      className="glass-panel overflow-hidden border-[var(--panel-border-strong)] shadow-[0_0_45px_rgba(57,255,148,0.08)]"
+      aria-labelledby="market-data-heading"
+    >
+      <div className="px-4 sm:px-6 pt-5">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h2 id="market-data-heading" className="panel-heading">
-            株価・チャート
-          </h2>
-          <span className="text-[0.65rem] text-[var(--text-faint)]">
-            TradingView提供 · 市場により遅延
-          </span>
+          <div>
+            <p className="mono text-[0.62rem] text-[var(--neon-soft)] mb-1">MAIN MARKET VIEW</p>
+            <h2 id="market-data-heading" className="panel-heading !text-base sm:!text-lg">
+              キオクシア株価・メインチャート
+            </h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-[0.65rem] text-[var(--text-faint)]">
+              TradingView提供 · 市場により遅延
+            </span>
+            <a
+              href="https://www.tradingview.com/chart/?symbol=TSE%3A285A"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded border border-[var(--panel-border-strong)] px-3 py-1.5 text-xs text-[var(--cyan)] hover:bg-[rgba(67,232,255,0.06)]"
+            >
+              大きく開く ↗
+            </a>
+          </div>
         </div>
-        <div ref={infoRef} className="tradingview-widget-container min-h-[165px] mt-2" />
+        <div ref={infoRef} className="tradingview-widget-container min-h-[165px] mt-1" />
       </div>
 
-      <div ref={chartRef} className="tradingview-widget-container h-[520px] sm:h-[600px]" />
+      <div className="h-[620px] sm:h-[720px] lg:h-[780px] xl:h-[820px]">
+        <div ref={chartRef} className="tradingview-widget-container h-full" />
+      </div>
 
-      <p className="px-5 pb-4 text-[0.65rem] text-[var(--text-faint)] leading-relaxed">
+      <p className="px-4 sm:px-6 pb-4 text-[0.65rem] text-[var(--text-faint)] leading-relaxed">
         株価データとチャートはTradingViewの公式ウィジェットを利用しています。表示時刻・遅延条件はウィジェット内の表示をご確認ください。
       </p>
     </section>
