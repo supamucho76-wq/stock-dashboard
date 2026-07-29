@@ -21,6 +21,8 @@ const JPX_SHORT_POSITION_INDEX_URL =
   "https://www.jpx.co.jp/markets/public/short-selling/index.html";
 const MINKABU_ANALYST_CONSENSUS_URL =
   "https://minkabu.jp/stock/285A/analyst_consensus";
+const MINKABU_MOBILE_ANALYST_CONSENSUS_URL =
+  "https://s.minkabu.jp/stock/285A/analyst_consensus";
 const TOKYO_TIME_ZONE = "Asia/Tokyo";
 const FY2026_BASIC_EPS = 1_024.07;
 const FY2026_BOOK_VALUE_PER_SHARE = 2_561.74;
@@ -329,6 +331,7 @@ async function getLatestJpxShortPositionSource(): Promise<ShortPositionSource> {
 
 export function parseMinkabuAnalystConsensusHtml(
   html: string,
+  sourceUrl = MINKABU_ANALYST_CONSENSUS_URL,
 ): AnalystConsensusData | null {
   const text = decodeHtml(html);
   const match = text.match(
@@ -366,29 +369,36 @@ export function parseMinkabuAnalystConsensusHtml(
     targetPrice,
     previousWeekTargetPrice,
     ratings,
-    sourceUrl: MINKABU_ANALYST_CONSENSUS_URL,
+    sourceUrl,
     state: "live",
   };
 }
 
 async function getMinkabuAnalystConsensus(): Promise<AnalystConsensusData> {
-  try {
-    const response = await fetch(MINKABU_ANALYST_CONSENSUS_URL, {
-      headers: {
-        Accept: "text/html,application/xhtml+xml",
-        "User-Agent": "KIOXIA-HUB/1.0 (+https://stock-dashboard-gilt-chi.vercel.app)",
-      },
-      next: { revalidate: 21_600 },
-      signal: AbortSignal.timeout(8_000),
-    });
-    if (!response.ok) return UNAVAILABLE_ANALYST_CONSENSUS;
-    return (
-      parseMinkabuAnalystConsensusHtml(await response.text()) ??
-      UNAVAILABLE_ANALYST_CONSENSUS
-    );
-  } catch {
-    return UNAVAILABLE_ANALYST_CONSENSUS;
+  const urls = [
+    MINKABU_ANALYST_CONSENSUS_URL,
+    MINKABU_MOBILE_ANALYST_CONSENSUS_URL,
+  ];
+  const results = await Promise.allSettled(
+    urls.map(async (url) => {
+      const response = await fetch(url, {
+        headers: {
+          Accept: "text/html,application/xhtml+xml",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36",
+        },
+        next: { revalidate: 21_600 },
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (!response.ok) return null;
+      return parseMinkabuAnalystConsensusHtml(await response.text(), url);
+    }),
+  );
+
+  for (const result of results) {
+    if (result.status === "fulfilled" && result.value) return result.value;
   }
+  return UNAVAILABLE_ANALYST_CONSENSUS;
 }
 
 function timestampToTokyoDate(timestamp: number): string {
