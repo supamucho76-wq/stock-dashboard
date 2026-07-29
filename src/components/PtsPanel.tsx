@@ -1,6 +1,7 @@
 const JAPANNEXT_MARKET_URL = "https://www.japannext.co.jp/ja/market";
 const JAPANNEXT_TRADING_URL = "https://www.japannext.co.jp/ja/trading";
 const JAPANNEXT_TERMS_URL = "https://www.japannext.co.jp/ja/legal";
+const YAHOO_KIOXIA_PTS_URL = "https://finance.yahoo.co.jp/quote/285A.T";
 
 export default function PtsPanel() {
   return (
@@ -35,14 +36,22 @@ export default function PtsPanel() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <p className="text-xs text-[#f6d365]">PTS現在値</p>
-            <p className="text-lg font-bold text-[var(--text)] mt-1">サイト内表示は準備中</p>
+            <p className="text-lg font-bold text-[var(--text)] mt-1">Yahoo!でリアルタイム確認</p>
+            <p className="text-[0.65rem] text-[var(--text-faint)] mt-1">
+              キオクシアHD（285A）の夜間PTS欄へ移動します
+            </p>
           </div>
-          <span className="rounded border border-[rgba(246,211,101,0.35)] px-2 py-1 text-[0.6rem] text-[#f6d365]">
-            LICENSE REQUIRED
-          </span>
+          <a
+            href={YAHOO_KIOXIA_PTS_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-neon text-xs"
+          >
+            285Aの夜間PTSを見る ↗
+          </a>
         </div>
         <p className="text-xs text-[var(--text-dim)] leading-relaxed mt-3">
-          PTS価格の第三者向け再配信には市場データ契約が必要です。正規ライセンス未契約の状態では数値を転載せず、公式市場または利用中の証券会社で確認できる導線を提供します。
+          PTS価格の第三者向け再配信には市場データ契約が必要です。正規ライセンス未契約のためサイト内には数値を転載せず、Yahoo!ファイナンスの285A銘柄ページで最新表示を確認できます。
         </p>
       </div>
 
