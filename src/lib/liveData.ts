@@ -368,6 +368,12 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
   const news = officialIr?.news.length ? officialIr.news : stock.news;
   stock.news = news;
   fallback.shareholders.majorShareholders = OFFICIAL_MAJOR_SHAREHOLDERS;
+  fallback.shareholders.marginSellBalance = 542_800;
+  fallback.shareholders.marginBuyBalance = 11_385_700;
+  fallback.shareholders.marginRatio = round2(11_385_700 / 542_800);
+  fallback.shareholders.weekOverWeekChangePercent = round2(
+    (-2_502_200 / (11_385_700 + 2_502_200)) * 100,
+  );
 
   const today = {
     ...fallback.today,
@@ -451,8 +457,8 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
           },
       estimates: {
         state: "demo",
-        label: "推計・市況・需給データ",
-        detail: "NAND・自動分析・信用需給等はデモ表示",
+        label: "値動き要因の自動分析",
+        detail: "ニュース分析のみDEMO・その他は公式ソースへ更新済み",
       },
     },
   };

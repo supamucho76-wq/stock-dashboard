@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const { stock, today, nand, earnings, shareholders, meta } =
+  const { stock, today, earnings, shareholders, meta } =
     await getKioxiaDashboardData();
 
   return (
@@ -39,10 +39,6 @@ export default async function Home() {
 
       <EarningsCountdownPanel earnings={earnings} />
 
-      <div className="rounded-lg border border-[rgba(246,211,101,0.35)] bg-[rgba(246,211,101,0.06)] px-4 py-3 text-xs text-[#f6d365] leading-relaxed">
-        以下のNAND市況、値動き要因の自動分析、信用・空売り需給、展望は現在UI検証用のDEMOです。投資判断には使用しないでください。
-      </div>
-
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6 items-start">
         <div className="glass-panel p-5 flex items-center justify-center min-h-[220px] text-center">
           <div>
@@ -55,7 +51,7 @@ export default async function Home() {
         <AnalystPanel />
       </div>
 
-      <NandMarketPanel nand={nand} />
+      <NandMarketPanel />
 
       <ShareholderShortPanel data={shareholders} />
 
@@ -65,7 +61,7 @@ export default async function Home() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <NewsList news={stock.news} />
-        <OutlookCard outlook={stock.outlook} />
+        <OutlookCard />
       </div>
     </div>
   );
