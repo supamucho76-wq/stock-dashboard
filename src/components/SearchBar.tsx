@@ -38,7 +38,7 @@ export default function SearchBar({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="銘柄コードを入力（例: 7203, 6758, 9984）"
-          className={`mono flex-1 bg-transparent outline-none placeholder:text-[var(--text-faint)] ${
+          className={`flex-1 bg-transparent outline-none placeholder:text-[var(--text-faint)] ${
             isSm ? "text-sm py-1.5" : "text-base py-2.5"
           }`}
           maxLength={10}
@@ -50,7 +50,7 @@ export default function SearchBar({
         </button>
       </div>
       {error && (
-        <p className="mono text-xs text-down mt-2 pl-2">{error}</p>
+        <p className="text-xs text-down mt-2 pl-2">{error}</p>
       )}
     </form>
   );

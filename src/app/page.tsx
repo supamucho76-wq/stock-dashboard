@@ -15,12 +15,12 @@ export default function Home() {
   return (
     <div className="max-w-[1400px] mx-auto px-6">
       <section className="pt-20 pb-14 text-center flex flex-col items-center">
-        <div className="mono text-xs tracking-[0.3em] text-[var(--neon-soft)] mb-5 flex items-center gap-2">
+        <div className="text-xs tracking-[0.2em] text-[var(--neon-soft)] mb-5 flex items-center gap-2">
           <span className="live-dot" />
-          日本株 分析ターミナル — DEMO BUILD
+          日本株 分析ターミナル — <span className="mono">DEMO BUILD</span>
         </div>
-        <h1 className="display-font font-800 text-[clamp(2.2rem,6vw,4.5rem)] leading-[1.05] tracking-tight">
-          <span className="neon-text">1</span>銘柄、
+        <h1 className="font-800 text-[clamp(2.2rem,6vw,4.5rem)] leading-[1.05] tracking-tight">
+          <span className="display-font neon-text">1</span>銘柄、
           <br className="sm:hidden" />
           <span className="neon-text">全</span>情報。
         </h1>
@@ -34,12 +34,12 @@ export default function Home() {
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-          <span className="mono text-xs text-[var(--text-faint)] mr-1">
+          <span className="text-xs text-[var(--text-faint)] mr-1">
             人気銘柄:
           </span>
           {POPULAR_CODES.map((code) => (
             <Link key={code} href={`/stock/${code}`} className="chip">
-              {code} {getKnownName(code)}
+              <span className="mono">{code}</span> {getKnownName(code)}
             </Link>
           ))}
         </div>
@@ -50,7 +50,7 @@ export default function Home() {
           {FEATURES.map((f) => (
             <div key={f.title} className="glass-panel p-6">
               <div className="text-2xl mb-3">{f.icon}</div>
-              <h3 className="display-font text-sm tracking-wide mb-2 text-[var(--text)]">
+              <h3 className="text-sm font-bold tracking-wide mb-2 text-[var(--text)]">
                 {f.title}
               </h3>
               <p className="text-sm text-[var(--text-dim)] leading-relaxed">
@@ -62,7 +62,7 @@ export default function Home() {
       </section>
 
       <section className="pb-24">
-        <div className="glass-panel p-6 mono text-xs text-[var(--text-faint)] leading-relaxed">
+        <div className="glass-panel p-6 text-xs text-[var(--text-faint)] leading-relaxed">
           ※ 本サイトで表示される株価・出来高・アナリスト評価・ニュースは全てデモ用に自動生成されたモックデータです。
           実際の市場データとは一切関係がなく、投資判断の参考にはなりません。
         </div>

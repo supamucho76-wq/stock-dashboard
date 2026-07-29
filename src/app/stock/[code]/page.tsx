@@ -36,8 +36,8 @@ export default async function StockPage({
     return (
       <div className="max-w-xl mx-auto px-6 py-24 text-center">
         <div className="glass-panel p-8">
-          <p className="text-down mono text-sm mb-4">
-            &quot;{code}&quot; は有効な銘柄コードではありません。
+          <p className="text-down text-sm mb-4">
+            &quot;<span className="mono">{code}</span>&quot; は有効な銘柄コードではありません。
           </p>
           <Link href="/" className="btn-neon inline-block text-sm">
             トップに戻る
@@ -63,7 +63,7 @@ export default async function StockPage({
             <h3 className="panel-heading">
               株価チャート — ローソク足 / ボリンジャーバンド(±2σ) / 出来高
             </h3>
-            <div className="flex items-center gap-4 mono text-[0.65rem] text-[var(--text-faint)]">
+            <div className="flex items-center gap-4 text-[0.65rem] text-[var(--text-faint)]">
               <span className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full inline-block bg-[var(--up)]" />
                 陽線

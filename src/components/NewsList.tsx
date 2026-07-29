@@ -22,8 +22,8 @@ export default function NewsList({ news }: { news: NewsItem[] }) {
               <p className="text-sm text-[var(--text)] leading-snug">
                 {n.title}
               </p>
-              <p className="mono text-[0.68rem] text-[var(--text-faint)] mt-1">
-                {n.source} · {n.time}
+              <p className="text-[0.68rem] text-[var(--text-faint)] mt-1">
+                {n.source} · <span className="mono">{n.time}</span>
               </p>
             </div>
           </div>

@@ -37,8 +37,8 @@ export default function AnalystPanel({
     <div className="glass-panel p-5 flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h3 className="panel-heading">アナリスト評価</h3>
-        <span className="mono text-[0.65rem] text-[var(--text-faint)]">
-          {firms.length}社集計
+        <span className="text-[0.65rem] text-[var(--text-faint)]">
+          <span className="mono">{firms.length}</span>社集計
         </span>
       </div>
 
@@ -49,10 +49,10 @@ export default function AnalystPanel({
           <div style={{ width: `${holdPct}%` }} className="bg-[#f6d365]" />
           <div style={{ width: `${sellPct}%` }} className="bg-[var(--down)]" />
         </div>
-        <div className="mt-2.5 flex justify-between mono text-xs">
-          <span className="text-up">買い {buy}</span>
-          <span className="text-[#f6d365]">中立 {hold}</span>
-          <span className="text-down">売り {sell}</span>
+        <div className="mt-2.5 flex justify-between text-xs">
+          <span className="text-up">買い <span className="mono">{buy}</span></span>
+          <span className="text-[#f6d365]">中立 <span className="mono">{hold}</span></span>
+          <span className="text-down">売り <span className="mono">{sell}</span></span>
         </div>
       </div>
 
@@ -72,25 +72,25 @@ export default function AnalystPanel({
             style={{ left: `${avgPct}%` }}
           />
           <div
-            className="absolute -top-6 -translate-x-1/2 mono text-[0.65rem] text-[var(--text-faint)] whitespace-nowrap"
+            className="absolute -top-6 -translate-x-1/2 text-[0.65rem] text-[var(--text-faint)] whitespace-nowrap"
             style={{ left: `${Math.min(Math.max(pricePct, 6), 94)}%` }}
           >
-            現在値 {yen(price)}
+            現在値 <span className="mono">{yen(price)}</span>
           </div>
           <div
             className="absolute -top-1.5 -translate-x-1/2 h-4 w-4 rounded-full border-2 border-[var(--cyan)] bg-[#0a120e]"
             style={{ left: `${Math.min(Math.max(pricePct, 0), 100)}%` }}
           />
-          <div className="absolute top-3 left-0 mono text-[0.65rem] text-[var(--text-faint)]">
-            安値 {yen(targetLow)}
+          <div className="absolute top-3 left-0 text-[0.65rem] text-[var(--text-faint)]">
+            安値 <span className="mono">{yen(targetLow)}</span>
           </div>
-          <div className="absolute top-3 right-0 mono text-[0.65rem] text-[var(--text-faint)]">
-            高値 {yen(targetHigh)}
+          <div className="absolute top-3 right-0 text-[0.65rem] text-[var(--text-faint)]">
+            高値 <span className="mono">{yen(targetHigh)}</span>
           </div>
         </div>
-        <p className="mono text-xs text-[var(--text-dim)]">
+        <p className="text-xs text-[var(--text-dim)]">
           現在値からの上昇余地:{" "}
-          <span className={upside >= 0 ? "text-up" : "text-down"}>
+          <span className={`mono ${upside >= 0 ? "text-up" : "text-down"}`}>
             {upside >= 0 ? "+" : ""}
             {upside.toFixed(1)}%
           </span>
@@ -111,7 +111,7 @@ export default function AnalystPanel({
               <span className="text-[var(--text-dim)] truncate">{f.firm}</span>
               <div className="flex items-center gap-3 shrink-0">
                 <span
-                  className={`px-2 py-0.5 rounded text-[0.65rem] mono ${ratingBadgeClass(
+                  className={`px-2 py-0.5 rounded text-[0.65rem] ${ratingBadgeClass(
                     f.rating
                   )}`}
                 >

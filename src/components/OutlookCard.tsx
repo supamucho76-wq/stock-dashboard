@@ -9,7 +9,7 @@ export default function OutlookCard({ outlook }: { outlook: string }) {
             key={i}
             className={`text-sm leading-relaxed ${
               i === paragraphs.length - 1 && paragraphs.length > 1
-                ? "mono text-[0.7rem] text-[var(--text-faint)]"
+                ? "text-[0.7rem] text-[var(--text-faint)]"
                 : "text-[var(--text-dim)]"
             }`}
           >

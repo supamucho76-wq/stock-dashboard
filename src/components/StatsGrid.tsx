@@ -1,14 +1,18 @@
 import type { StockData } from "@/lib/stockData";
 
 export default function StatsGrid({ stats }: { stats: StockData["stats"] }) {
-  const items: { label: string; value: string }[] = [
+  const items: { label: string; value: string; unit?: string }[] = [
     { label: "52週高値", value: `¥${stats.high52w.toLocaleString()}` },
     { label: "52週安値", value: `¥${stats.low52w.toLocaleString()}` },
-    { label: "PER", value: `${stats.per.toFixed(1)}倍` },
-    { label: "PBR", value: `${stats.pbr.toFixed(2)}倍` },
+    { label: "PER", value: stats.per.toFixed(1), unit: "倍" },
+    { label: "PBR", value: stats.pbr.toFixed(2), unit: "倍" },
     { label: "配当利回り", value: `${stats.dividendYield.toFixed(2)}%` },
-    { label: "時価総額", value: `${stats.marketCapOku.toLocaleString()}億円` },
-    { label: "平均出来高", value: `${Math.round(stats.avgVolume / 1000).toLocaleString()}千株` },
+    { label: "時価総額", value: stats.marketCapOku.toLocaleString(), unit: "億円" },
+    {
+      label: "平均出来高",
+      value: Math.round(stats.avgVolume / 1000).toLocaleString(),
+      unit: "千株",
+    },
   ];
 
   return (
@@ -20,7 +24,10 @@ export default function StatsGrid({ stats }: { stats: StockData["stats"] }) {
             <p className="text-[0.68rem] text-[var(--text-faint)] mb-1">
               {it.label}
             </p>
-            <p className="mono text-sm text-[var(--text)]">{it.value}</p>
+            <p className="text-sm text-[var(--text)]">
+              <span className="mono">{it.value}</span>
+              {it.unit}
+            </p>
           </div>
         ))}
       </div>

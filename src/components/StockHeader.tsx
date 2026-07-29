@@ -13,7 +13,7 @@ export default function StockHeader({ data }: { data: StockData }) {
             {data.market} · {data.sector}
           </span>
         </div>
-        <h1 className="display-font text-2xl sm:text-3xl mt-2 tracking-tight">
+        <h1 className="font-bold text-2xl sm:text-3xl mt-2 tracking-tight">
           {data.name}
         </h1>
       </div>

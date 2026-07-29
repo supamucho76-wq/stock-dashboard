@@ -125,11 +125,10 @@ body {
   color: var(--neon);
 }
 .brand-tagline {
-  font-family: var(--font-mono), monospace;
+  font-family: var(--font-jp), sans-serif;
   font-size: 0.7rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   color: var(--text-faint);
-  text-transform: uppercase;
 }
 
 .site-footer {
@@ -138,7 +137,7 @@ body {
   text-align: center;
   font-size: 0.72rem;
   color: var(--text-faint);
-  font-family: var(--font-mono), monospace;
+  font-family: var(--font-jp), sans-serif;
 }
 
 /* --- 共通パーツ --- */
@@ -170,16 +169,17 @@ body {
 }
 
 .panel-heading {
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--font-jp), sans-serif;
+  font-weight: 700;
   font-size: 0.72rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--neon-soft);
 }
 
 .btn-neon {
-  font-family: var(--font-display), sans-serif;
-  letter-spacing: 0.08em;
+  font-family: var(--font-jp), sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   background: linear-gradient(180deg, rgba(57, 255, 148, 0.22), rgba(57, 255, 148, 0.08));
   border: 1px solid var(--panel-border-strong);
   color: var(--neon);
@@ -195,7 +195,7 @@ body {
 }
 
 .chip {
-  font-family: var(--font-mono), monospace;
+  font-family: var(--font-jp), sans-serif;
   font-size: 0.78rem;
   border: 1px solid var(--panel-border);
   color: var(--text-dim);
