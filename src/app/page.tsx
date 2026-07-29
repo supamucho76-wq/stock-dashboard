@@ -29,14 +29,18 @@ export default async function Home() {
 
       <KioxiaMarketPanel stock={stock} isLive={meta.stock.state === "external"} />
 
-      <TodaySummaryCard today={today} isLive={meta.ir.state === "live"} />
+      <TodaySummaryCard
+        today={today}
+        isIrLive={meta.ir.state === "live"}
+        isMarketLive={meta.stock.state === "external"}
+      />
 
       <PtsPanel />
 
       <EarningsCountdownPanel earnings={earnings} />
 
       <div className="rounded-lg border border-[rgba(246,211,101,0.35)] bg-[rgba(246,211,101,0.06)] px-4 py-3 text-xs text-[#f6d365] leading-relaxed">
-        以下のNAND市況、アナリスト評価、需給・株主情報、主要指標、展望は現在UI検証用のDEMOです。投資判断には使用しないでください。
+        以下のNAND市況、値動き要因の自動分析、信用・空売り需給、展望は現在UI検証用のDEMOです。投資判断には使用しないでください。
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6 items-start">
@@ -48,7 +52,7 @@ export default async function Home() {
             </p>
           </div>
         </div>
-        <AnalystPanel analysts={stock.analysts} price={stock.price} />
+        <AnalystPanel />
       </div>
 
       <NandMarketPanel nand={nand} />
@@ -57,7 +61,7 @@ export default async function Home() {
 
       <MyPositionPanel />
 
-      <StatsGrid stats={stock.stats} />
+      <StatsGrid stats={stock.stats} isLive={meta.stock.state === "external"} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <NewsList news={stock.news} />

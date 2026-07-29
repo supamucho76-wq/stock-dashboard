@@ -1,130 +1,66 @@
-import type { StockData } from "@/lib/stockData";
+const COVERAGE_URL =
+  "https://www.kioxia-holdings.com/ja-jp/ir/stock/analyst-coverage.html";
 
-function yen(n: number): string {
-  return `¥${Math.round(n).toLocaleString()}`;
-}
+const analysts = [
+  ["Aletheia Capital Limited", "Warren Lau"],
+  ["Arete Research LLC", "Nam Hyung Kim"],
+  ["BNP Paribas S.A.", "Alex Chang"],
+  ["BofA証券株式会社", "平川 幹夫"],
+  ["China Renaissance Securities (HK) Ltd", "Jack Zhou"],
+  ["シティグループ証券株式会社", "藤原 毅郎"],
+  ["CLSA証券株式会社", "吉田 優"],
+  ["Daiwa Securities Capital Markets Korea", "SK (Sung Kyu) Kim"],
+  ["ゴールドマン・サックス証券株式会社", "中村 修平"],
+  ["岩井コスモ証券株式会社", "斎藤 和嘉"],
+  ["J.P. Morgan Securities, Seoul Branch", "Jay Kwon"],
+  ["JPモルガン証券株式会社", "鹿内 美欧"],
+  ["モルガン・スタンレーMUFG証券株式会社", "吉川 和夫"],
+  ["Morningstar, Inc.", "Yu Jing Jie"],
+  ["MST Financial Services Pty Limited", "David Gibson"],
+  ["野村證券株式会社", "王 バージニア"],
+  ["フィリップ証券株式会社", "和泉 美治"],
+  ["Sanford C. Bernstein (Hong Kong) Ltd.", "Mark Li"],
+  ["SMBC日興証券株式会社", "花屋 武"],
+] as const;
 
-function ratingBadgeClass(rating: string): string {
-  if (rating === "買い") return "badge-buy";
-  if (rating === "売り") return "badge-sell";
-  return "badge-hold";
-}
-
-export default function AnalystPanel({
-  analysts,
-  price,
-}: {
-  analysts: StockData["analysts"];
-  price: number;
-}) {
-  const { buy, hold, sell, targetAvg, targetHigh, targetLow, firms } = analysts;
-  const total = buy + hold + sell || 1;
-  const buyPct = (buy / total) * 100;
-  const holdPct = (hold / total) * 100;
-  const sellPct = (sell / total) * 100;
-
-  const rangeMin = Math.min(targetLow, price) * 0.97;
-  const rangeMax = Math.max(targetHigh, price) * 1.03;
-  const span = rangeMax - rangeMin || 1;
-  const pricePct = ((price - rangeMin) / span) * 100;
-  const lowPct = ((targetLow - rangeMin) / span) * 100;
-  const avgPct = ((targetAvg - rangeMin) / span) * 100;
-  const highPct = ((targetHigh - rangeMin) / span) * 100;
-
-  const upside = ((targetAvg - price) / price) * 100;
-
+export default function AnalystPanel() {
   return (
-    <div className="glass-panel p-5 flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h3 className="panel-heading">アナリスト評価</h3>
-        <span className="text-[0.65rem] text-[var(--text-faint)]">
-          <span className="mono">{firms.length}</span>社集計
-        </span>
+    <section className="glass-panel p-5" aria-labelledby="analyst-heading">
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+        <div className="flex items-center gap-2">
+          <h3 id="analyst-heading" className="panel-heading">アナリストカバレッジ</h3>
+          <span className="mono text-[0.58rem] text-[var(--neon-soft)]">OFFICIAL</span>
+        </div>
+        <a
+          href={COVERAGE_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="text-[0.65rem] text-[var(--cyan)] hover:opacity-80"
+        >
+          公式一覧 ↗
+        </a>
       </div>
 
-      {/* 買い/中立/売り 分布 */}
-      <div>
-        <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-[var(--panel-border)]">
-          <div style={{ width: `${buyPct}%` }} className="bg-[var(--up)]" />
-          <div style={{ width: `${holdPct}%` }} className="bg-[#f6d365]" />
-          <div style={{ width: `${sellPct}%` }} className="bg-[var(--down)]" />
+      <div className="mb-4 flex items-end justify-between gap-4">
+        <div>
+          <p className="mono text-3xl neon-text">{analysts.length}</p>
+          <p className="text-[0.65rem] text-[var(--text-faint)]">掲載アナリスト数</p>
         </div>
-        <div className="mt-2.5 flex justify-between text-xs">
-          <span className="text-up">買い <span className="mono">{buy}</span></span>
-          <span className="text-[#f6d365]">中立 <span className="mono">{hold}</span></span>
-          <span className="text-down">売り <span className="mono">{sell}</span></span>
-        </div>
+        <p className="text-[0.65rem] text-[var(--text-faint)]">更新日 2026年6月30日</p>
       </div>
 
-      {/* 目標株価レンジ */}
-      <div>
-        <div className="flex items-baseline justify-between mb-3">
-          <span className="text-sm text-[var(--text-dim)]">目標株価コンセンサス</span>
-          <span className="mono text-lg neon-text font-bold">{yen(targetAvg)}</span>
-        </div>
-        <div className="relative h-1.5 rounded-full bg-[rgba(255,255,255,0.06)] mt-6 mb-6">
-          <div
-            className="absolute h-1.5 rounded-full bg-[rgba(57,255,148,0.35)]"
-            style={{ left: `${lowPct}%`, width: `${Math.max(highPct - lowPct, 0)}%` }}
-          />
-          <div
-            className="absolute -top-1 h-3.5 w-[2px] bg-[var(--neon)]"
-            style={{ left: `${avgPct}%` }}
-          />
-          <div
-            className="absolute -top-6 -translate-x-1/2 text-[0.65rem] text-[var(--text-faint)] whitespace-nowrap"
-            style={{ left: `${Math.min(Math.max(pricePct, 6), 94)}%` }}
-          >
-            現在値 <span className="mono">{yen(price)}</span>
+      <div className="max-h-[430px] overflow-y-auto divide-y divide-[var(--panel-border)] pr-1">
+        {analysts.map(([firm, analyst]) => (
+          <div key={`${firm}-${analyst}`} className="py-2.5 flex items-start justify-between gap-3 text-sm">
+            <span className="text-[var(--text-dim)]">{firm}</span>
+            <span className="text-[var(--text)] text-right shrink-0">{analyst}</span>
           </div>
-          <div
-            className="absolute -top-1.5 -translate-x-1/2 h-4 w-4 rounded-full border-2 border-[var(--cyan)] bg-[#0a120e]"
-            style={{ left: `${Math.min(Math.max(pricePct, 0), 100)}%` }}
-          />
-          <div className="absolute top-3 left-0 text-[0.65rem] text-[var(--text-faint)]">
-            安値 <span className="mono">{yen(targetLow)}</span>
-          </div>
-          <div className="absolute top-3 right-0 text-[0.65rem] text-[var(--text-faint)]">
-            高値 <span className="mono">{yen(targetHigh)}</span>
-          </div>
-        </div>
-        <p className="text-xs text-[var(--text-dim)]">
-          現在値からの上昇余地:{" "}
-          <span className={`mono ${upside >= 0 ? "text-up" : "text-down"}`}>
-            {upside >= 0 ? "+" : ""}
-            {upside.toFixed(1)}%
-          </span>
-        </p>
+        ))}
       </div>
 
-      {/* 証券会社別レーティング */}
-      <div>
-        <h4 className="text-xs text-[var(--text-faint)] mb-2.5 tracking-wide">
-          証券会社別レーティング
-        </h4>
-        <div className="flex flex-col divide-y divide-[var(--panel-border)] max-h-64 overflow-y-auto">
-          {firms.map((f) => (
-            <div
-              key={f.firm}
-              className="py-2.5 flex items-center justify-between gap-3 text-sm"
-            >
-              <span className="text-[var(--text-dim)] truncate">{f.firm}</span>
-              <div className="flex items-center gap-3 shrink-0">
-                <span
-                  className={`px-2 py-0.5 rounded text-[0.65rem] ${ratingBadgeClass(
-                    f.rating
-                  )}`}
-                >
-                  {f.rating}
-                </span>
-                <span className="mono text-xs w-20 text-right">
-                  {yen(f.targetPrice)}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+      <p className="mt-4 text-[0.62rem] text-[var(--text-faint)] leading-relaxed">
+        公式サイトがレポート発行を確認した担当者の一覧です。投資判断・目標株価・推奨を示すものではありません。
+      </p>
+    </section>
   );
 }

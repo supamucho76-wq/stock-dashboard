@@ -55,6 +55,7 @@ export default function KioxiaMarketPanel({
             ¥{stock.price.toLocaleString("ja-JP")}
           </span>
           <div className={`mono pb-1 ${isUp ? "text-up" : "text-down"}`}>
+            <p className="mb-0.5 text-[0.6rem] text-[var(--text-faint)]">前日比</p>
             <p>
               {isUp ? "▲" : "▼"} {isUp ? "+" : ""}
               {stock.change.toLocaleString("ja-JP")}

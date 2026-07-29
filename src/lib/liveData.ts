@@ -14,6 +14,21 @@ const KIOXIA_YAHOO_CHART_URL =
   "https://query1.finance.yahoo.com/v8/finance/chart/285A.T?range=1y&interval=1d";
 const KIOXIA_YAHOO_PAGE_URL = "https://finance.yahoo.co.jp/quote/285A.T/chart";
 const TOKYO_TIME_ZONE = "Asia/Tokyo";
+const FY2026_BASIC_EPS = 1_024.07;
+const FY2026_BOOK_VALUE_PER_SHARE = 2_561.74;
+const FY2026_SHARES_OUTSTANDING = 546_086_290;
+const OFFICIAL_MAJOR_SHAREHOLDERS = [
+  { name: "株式会社東芝", pct: 17.59, pctChangePts: 0 },
+  { name: "BCPE Pangea Cayman2, Ltd.", pct: 14.17, pctChangePts: 0 },
+  { name: "BCPE Pangea Cayman 1A, L.P.", pct: 4.91, pctChangePts: 0 },
+  { name: "GOLDMAN SACHS INTERNATIONAL", pct: 3.74, pctChangePts: 0 },
+  { name: "日本マスタートラスト信託銀行（信託口）", pct: 3.16, pctChangePts: 0 },
+  { name: "BNY GCM CLIENT ACCOUNT JPRD AC ISG (FE-AC)", pct: 2.97, pctChangePts: 0 },
+  { name: "MSIP CLIENT SECURITIES", pct: 2.26, pctChangePts: 0 },
+  { name: "日本カストディ銀行（信託口）", pct: 1.48, pctChangePts: 0 },
+  { name: "BCPE Pangea Cayman 1B, L.P.", pct: 1.41, pctChangePts: 0 },
+  { name: "BCPE Pangea Cayman, L.P.", pct: 1.38, pctChangePts: 0 },
+];
 
 export type SourceState = "live" | "external" | "demo" | "unavailable";
 
@@ -156,8 +171,9 @@ async function getKioxiaMarketChart(): Promise<MarketChartResult | null> {
 
     const closes = candles.map((candle) => candle.close);
     const latestClose = closes.at(-1)!;
-    const previousClose =
-      result.meta?.previousClose ?? result.meta?.chartPreviousClose ?? closes.at(-2) ?? latestClose;
+    // 日足の直近2本を使い、必ず「直前の取引日終値」と比較する。
+    // YahooのchartPreviousCloseは取得期間開始前の値になる場合があるため使用しない。
+    const previousClose = closes.at(-2) ?? latestClose;
     const price = result.meta?.regularMarketPrice ?? latestClose;
     const change = price - previousClose;
     const validVolumes = volumes.map((item) => item.value).filter((value) => value > 0);
@@ -342,9 +358,16 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
     stock.stats.high52w = marketChart.high52w;
     stock.stats.low52w = marketChart.low52w;
     stock.stats.avgVolume = marketChart.avgVolume;
+    stock.stats.per = round2(marketChart.price / FY2026_BASIC_EPS);
+    stock.stats.pbr = round2(marketChart.price / FY2026_BOOK_VALUE_PER_SHARE);
+    stock.stats.dividendYield = 0;
+    stock.stats.marketCapOku = Math.round(
+      (marketChart.price * FY2026_SHARES_OUTSTANDING) / 100_000_000,
+    );
   }
   const news = officialIr?.news.length ? officialIr.news : stock.news;
   stock.news = news;
+  fallback.shareholders.majorShareholders = OFFICIAL_MAJOR_SHAREHOLDERS;
 
   const today = {
     ...fallback.today,
@@ -403,7 +426,7 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
         state: marketChart ? "external" : "demo",
         label: "株価・チャート",
         detail: marketChart
-          ? "Yahoo Finance公開チャート（市場により遅延）"
+          ? "Yahoo Finance株価 + 公式決算指標（市場により遅延）"
           : "外部データ取得失敗のためデモ表示",
         url: KIOXIA_YAHOO_PAGE_URL,
       },
@@ -429,7 +452,7 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
       estimates: {
         state: "demo",
         label: "推計・市況・需給データ",
-        detail: "NAND・アナリスト・株主等はデモ表示",
+        detail: "NAND・自動分析・信用需給等はデモ表示",
       },
     },
   };
