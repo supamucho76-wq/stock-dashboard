@@ -5,7 +5,7 @@ import NandMarketPanel from "@/components/NandMarketPanel";
 import EarningsCountdownPanel from "@/components/EarningsCountdownPanel";
 import ShareholderShortPanel from "@/components/ShareholderShortPanel";
 import MyPositionPanel from "@/components/MyPositionPanel";
-import TradingViewMarketPanel from "@/components/TradingViewMarketPanel";
+import KioxiaMarketPanel from "@/components/KioxiaMarketPanel";
 import AnalystPanel from "@/components/AnalystPanel";
 import StatsGrid from "@/components/StatsGrid";
 import NewsList from "@/components/NewsList";
@@ -27,7 +27,7 @@ export default async function Home() {
     <div className="max-w-[1680px] mx-auto px-3 sm:px-6 xl:px-8 py-6 sm:py-8 flex flex-col gap-6">
       <DataSourceBar meta={meta} />
 
-      <TradingViewMarketPanel />
+      <KioxiaMarketPanel stock={stock} isLive={meta.stock.state === "external"} />
 
       <TodaySummaryCard today={today} isLive={meta.ir.state === "live"} />
 

@@ -116,5 +116,10 @@ export default function PriceChart({
     };
   }, [candles, volumes, bollinger]);
 
-  return <div ref={containerRef} className="w-full h-[420px] sm:h-[460px]" />;
+  return (
+    <div
+      ref={containerRef}
+      className="w-full h-[560px] sm:h-[650px] lg:h-[720px] xl:h-[760px]"
+    />
+  );
 }

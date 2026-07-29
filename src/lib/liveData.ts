@@ -1,10 +1,18 @@
-import type { NewsItem } from "./stockData";
+import type {
+  BollingerPoint,
+  Candle,
+  NewsItem,
+  VolumePoint,
+} from "./stockData";
 import {
   generateKioxiaBundle,
   type KioxiaBundle,
 } from "./kioxiaData";
 
 const KIOXIA_IR_URL = "https://www.kioxia-holdings.com/ja-jp/ir/news.html";
+const KIOXIA_YAHOO_CHART_URL =
+  "https://query1.finance.yahoo.com/v8/finance/chart/285A.T?range=1y&interval=1d";
+const KIOXIA_YAHOO_PAGE_URL = "https://finance.yahoo.co.jp/quote/285A.T/chart";
 const TOKYO_TIME_ZONE = "Asia/Tokyo";
 
 export type SourceState = "live" | "external" | "demo" | "unavailable";
@@ -37,6 +45,141 @@ type OfficialIrResult = {
     fiscalPeriod: string;
   };
 };
+
+type MarketChartResult = {
+  price: number;
+  prevClose: number;
+  change: number;
+  changePercent: number;
+  candles: Candle[];
+  volumes: VolumePoint[];
+  bollinger: BollingerPoint[];
+  high52w: number;
+  low52w: number;
+  avgVolume: number;
+};
+
+type YahooChartPayload = {
+  chart?: {
+    result?: Array<{
+      meta?: {
+        symbol?: string;
+        regularMarketPrice?: number;
+        chartPreviousClose?: number;
+        previousClose?: number;
+      };
+      timestamp?: number[];
+      indicators?: {
+        quote?: Array<{
+          open?: Array<number | null>;
+          high?: Array<number | null>;
+          low?: Array<number | null>;
+          close?: Array<number | null>;
+          volume?: Array<number | null>;
+        }>;
+      };
+    }>;
+  };
+};
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function timestampToTokyoDate(timestamp: number): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TOKYO_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(timestamp * 1_000));
+}
+
+function buildBollinger(candles: Candle[]): BollingerPoint[] {
+  const period = 20;
+  return candles.slice(period - 1).map((candle, offset) => {
+    const index = offset + period - 1;
+    const closes = candles.slice(index - period + 1, index + 1).map((item) => item.close);
+    const middle = closes.reduce((sum, value) => sum + value, 0) / period;
+    const variance = closes.reduce((sum, value) => sum + (value - middle) ** 2, 0) / period;
+    const deviation = Math.sqrt(variance);
+    return {
+      time: candle.time,
+      upper: round2(middle + deviation * 2),
+      middle: round2(middle),
+      lower: round2(middle - deviation * 2),
+    };
+  });
+}
+
+async function getKioxiaMarketChart(): Promise<MarketChartResult | null> {
+  try {
+    const response = await fetch(KIOXIA_YAHOO_CHART_URL, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "KIOXIA-HUB/1.0 (+https://stock-dashboard-gilt-chi.vercel.app)",
+      },
+      next: { revalidate: 900 },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) return null;
+
+    const payload = (await response.json()) as YahooChartPayload;
+    const result = payload.chart?.result?.[0];
+    const quote = result?.indicators?.quote?.[0];
+    const timestamps = result?.timestamp ?? [];
+    if (result?.meta?.symbol !== "285A.T" || !quote || timestamps.length === 0) return null;
+
+    const candles: Candle[] = [];
+    const volumes: VolumePoint[] = [];
+    timestamps.forEach((timestamp, index) => {
+      const open = quote.open?.[index];
+      const high = quote.high?.[index];
+      const low = quote.low?.[index];
+      const close = quote.close?.[index];
+      if (open == null || high == null || low == null || close == null) return;
+      const time = timestampToTokyoDate(timestamp);
+      candles.push({
+        time,
+        open: round2(open),
+        high: round2(high),
+        low: round2(low),
+        close: round2(close),
+      });
+      volumes.push({
+        time,
+        value: quote.volume?.[index] ?? 0,
+        color: close >= open ? "rgba(51,255,156,0.38)" : "rgba(255,61,113,0.38)",
+      });
+    });
+    if (candles.length < 20) return null;
+
+    const closes = candles.map((candle) => candle.close);
+    const latestClose = closes.at(-1)!;
+    const previousClose =
+      result.meta?.previousClose ?? result.meta?.chartPreviousClose ?? closes.at(-2) ?? latestClose;
+    const price = result.meta?.regularMarketPrice ?? latestClose;
+    const change = price - previousClose;
+    const validVolumes = volumes.map((item) => item.value).filter((value) => value > 0);
+
+    return {
+      price: round2(price),
+      prevClose: round2(previousClose),
+      change: round2(change),
+      changePercent: previousClose ? round2((change / previousClose) * 100) : 0,
+      candles,
+      volumes,
+      bollinger: buildBollinger(candles),
+      high52w: Math.max(...candles.map((candle) => candle.high)),
+      low52w: Math.min(...candles.map((candle) => candle.low)),
+      avgVolume: validVolumes.length
+        ? Math.round(validVolumes.reduce((sum, value) => sum + value, 0) / validVolumes.length)
+        : 0,
+    };
+  } catch {
+    return null;
+  }
+}
 
 function tokyoDateParts(date: Date): { year: number; month: number; day: number } {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -183,8 +326,23 @@ async function getOfficialIr(): Promise<OfficialIrResult | null> {
 
 export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
   const fallback = generateKioxiaBundle();
-  const officialIr = await getOfficialIr();
+  const [officialIr, marketChart] = await Promise.all([
+    getOfficialIr(),
+    getKioxiaMarketChart(),
+  ]);
   const stock = fallback.stock;
+  if (marketChart) {
+    stock.price = marketChart.price;
+    stock.prevClose = marketChart.prevClose;
+    stock.change = marketChart.change;
+    stock.changePercent = marketChart.changePercent;
+    stock.candles = marketChart.candles;
+    stock.volumes = marketChart.volumes;
+    stock.bollinger = marketChart.bollinger;
+    stock.stats.high52w = marketChart.high52w;
+    stock.stats.low52w = marketChart.low52w;
+    stock.stats.avgVolume = marketChart.avgVolume;
+  }
   const news = officialIr?.news.length ? officialIr.news : stock.news;
   stock.news = news;
 
@@ -200,7 +358,9 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
       | "弱気",
     topNews: news[0]?.title ?? fallback.today.topNews,
     reasonSummary:
-      "株価とチャートはTradingViewの公式埋め込みで確認できます。値動きの背景は、公式開示や信頼できる報道とあわせて確認してください。",
+      marketChart
+        ? "キオクシア(285A)の株価チャートを表示しています。値動きの背景は、公式開示や信頼できる報道とあわせて確認してください。"
+        : "株価データを取得できなかったため、チャートはデモ表示です。投資判断には使用しないでください。",
   };
 
   const earnings = {
@@ -240,10 +400,12 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
         timeStyle: "short",
       }).format(new Date()),
       stock: {
-        state: "external",
+        state: marketChart ? "external" : "demo",
         label: "株価・チャート",
-        detail: "TradingView公式埋め込み（市場により遅延）",
-        url: "https://www.tradingview.com/symbols/TSE-285A/",
+        detail: marketChart
+          ? "Yahoo Finance公開チャート（市場により遅延）"
+          : "外部データ取得失敗のためデモ表示",
+        url: KIOXIA_YAHOO_PAGE_URL,
       },
       pts: {
         state: "external",

@@ -9,7 +9,7 @@ const STATE_STYLE: Record<DashboardSource["state"], string> = {
 
 const STATE_LABEL: Record<DashboardSource["state"], string> = {
   live: "LIVE",
-  external: "EMBED",
+  external: "EXT",
   demo: "DEMO",
   unavailable: "FALLBACK",
 };
