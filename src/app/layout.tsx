@@ -22,9 +22,9 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "STOCKGRID | 日本株分析ターミナル",
+  title: "KIOXIA HUB | キオクシア(285A) 専用分析ターミナル",
   description:
-    "銘柄コードを入力するだけで、株価チャート・出来高・ボリンジャーバンド・アナリスト目標株価・ニュースまで一括表示する日本株分析ダッシュボード。",
+    "キオクシアホールディングス(285A)保有者向けの専用ダッシュボード。今日の状況・NAND市況・決算カウントダウン・株主/信用需給・マイポジションを1画面に集約。",
 };
 
 export default function RootLayout({
@@ -44,11 +44,11 @@ export default function RootLayout({
             <Link href="/" className="brand">
               <span className="brand-mark">⌁</span>
               <span className="brand-text">
-                STOCK<span className="brand-accent">GRID</span>
+                KIOXIA<span className="brand-accent">HUB</span>
               </span>
             </Link>
             <span className="brand-tagline">
-              日本株 銘柄分析ターミナル — MOCK DATA
+              キオクシア(285A) 保有者専用ダッシュボード — MOCK DATA
             </span>
           </div>
         </header>

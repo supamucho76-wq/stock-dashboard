@@ -97,25 +97,11 @@ const KNOWN_STOCKS: Record<
   "8058": { name: "三菱商事", sector: "卸売業", basePrice: 3600 },
   "6902": { name: "デンソー", sector: "輸送用機器", basePrice: 2200 },
   "4502": { name: "武田薬品工業", sector: "医薬品", basePrice: 4300 },
+  "285A": { name: "キオクシアホールディングス", sector: "電気機器", basePrice: 2800 },
 };
 
-export function getKnownName(code: string): string | undefined {
-  return KNOWN_STOCKS[code.trim().toUpperCase()]?.name;
-}
-
-export const POPULAR_CODES = [
-  "7203",
-  "6758",
-  "9984",
-  "7974",
-  "6861",
-  "9433",
-  "8306",
-  "9983",
-];
-
 // --- 決定論的疑似乱数 (mulberry32) ---
-function hashSeed(str: string): number {
+export function hashSeed(str: string): number {
   let h = 1779033703 ^ str.length;
   for (let i = 0; i < str.length; i++) {
     h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
@@ -124,7 +110,7 @@ function hashSeed(str: string): number {
   return h >>> 0;
 }
 
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   let a = seed;
   return function () {
     a |= 0;
@@ -178,10 +164,6 @@ function formatDate(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-export function isLikelyValidCode(code: string): boolean {
-  return /^[0-9A-Za-z]{3,5}$/.test(code.trim());
 }
 
 export function generateStockData(rawCode: string): StockData {
@@ -352,6 +334,6 @@ export function generateStockData(rawCode: string): StockData {
   };
 }
 
-function round2(n: number): number {
+export function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
