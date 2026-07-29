@@ -20,8 +20,16 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const { stock, today, earnings, shareholders, margin, shortPositions, meta } =
-    await getKioxiaDashboardData();
+  const {
+    stock,
+    today,
+    earnings,
+    shareholders,
+    margin,
+    shortPositions,
+    analystConsensus,
+    meta,
+  } = await getKioxiaDashboardData();
 
   return (
     <div className="max-w-[1680px] mx-auto px-3 sm:px-6 xl:px-8 py-6 sm:py-8 flex flex-col gap-6">
@@ -39,7 +47,7 @@ export default async function Home() {
 
       <EarningsCountdownPanel earnings={earnings} />
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-6 items-start">
         <div className="glass-panel p-5 flex items-center justify-center min-h-[220px] text-center">
           <div>
             <span className="mono text-[0.62rem] text-[#f6d365]">DEMO ANALYSIS</span>
@@ -48,7 +56,7 @@ export default async function Home() {
             </p>
           </div>
         </div>
-        <AnalystPanel />
+        <AnalystPanel consensus={analystConsensus} currentPrice={stock.price} />
       </div>
 
       <NandMarketPanel />

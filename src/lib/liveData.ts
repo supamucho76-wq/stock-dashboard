@@ -19,6 +19,8 @@ const JPX_MARGIN_INDEX_URL =
   "https://www.jpx.co.jp/markets/statistics-equities/margin/05.html";
 const JPX_SHORT_POSITION_INDEX_URL =
   "https://www.jpx.co.jp/markets/public/short-selling/index.html";
+const MINKABU_ANALYST_CONSENSUS_URL =
+  "https://minkabu.jp/stock/285A/analyst_consensus";
 const TOKYO_TIME_ZONE = "Asia/Tokyo";
 const FY2026_BASIC_EPS = 1_024.07;
 const FY2026_BOOK_VALUE_PER_SHARE = 2_561.74;
@@ -57,6 +59,7 @@ export type KioxiaDashboardData = KioxiaBundle & {
   meta: DashboardMeta;
   margin: MarginBalanceData;
   shortPositions: ShortPositionSource;
+  analystConsensus: AnalystConsensusData;
 };
 
 export type MarginBalanceData = {
@@ -80,6 +83,22 @@ export type ShortPositionSource = {
   state: "live" | "fallback";
 };
 
+export type AnalystConsensusData = {
+  asOf: string | null;
+  consensus: string | null;
+  targetPrice: number | null;
+  previousWeekTargetPrice: number | null;
+  ratings: {
+    strongBuy: number;
+    buy: number;
+    neutral: number;
+    sell: number;
+    strongSell: number;
+  } | null;
+  sourceUrl: string;
+  state: "live" | "unavailable";
+};
+
 const FALLBACK_MARGIN_DATA: MarginBalanceData = {
   asOf: "2026-07-24",
   sellBalance: 542_800,
@@ -100,6 +119,16 @@ const FALLBACK_SHORT_POSITION_SOURCE: ShortPositionSource = {
   asOf: "2026-07-29",
   sourceUrl: JPX_SHORT_POSITION_INDEX_URL,
   state: "fallback",
+};
+
+const UNAVAILABLE_ANALYST_CONSENSUS: AnalystConsensusData = {
+  asOf: null,
+  consensus: null,
+  targetPrice: null,
+  previousWeekTargetPrice: null,
+  ratings: null,
+  sourceUrl: MINKABU_ANALYST_CONSENSUS_URL,
+  state: "unavailable",
 };
 
 type OfficialIrResult = {
@@ -295,6 +324,70 @@ async function getLatestJpxShortPositionSource(): Promise<ShortPositionSource> {
     );
   } catch {
     return FALLBACK_SHORT_POSITION_SOURCE;
+  }
+}
+
+export function parseMinkabuAnalystConsensusHtml(
+  html: string,
+): AnalystConsensusData | null {
+  const text = decodeHtml(html);
+  const match = text.match(
+    /(\d{4}\/\d{2}\/\d{2})時点における、キオクシアに対する、アナリスト判断（コンセンサス）は、([^。]+)。内訳は、強気買い(\d+)人、買い(\d+)人、中立(\d+)人、売り(\d+)人(?:、強気売り(\d+)人)?となっています。アナリストの平均目標株価は([\d,]+)円[^。]*。.*?この１週間で([\d,]+)円から([\d,]+)円/,
+  );
+  if (!match) return null;
+
+  const [year, month, day] = match[1].split("/");
+  const ratings = {
+    strongBuy: Number(match[3]),
+    buy: Number(match[4]),
+    neutral: Number(match[5]),
+    sell: Number(match[6]),
+    strongSell: Number(match[7] ?? 0),
+  };
+  const targetPrice = parseNumber(match[8]);
+  const previousWeekTargetPrice = parseNumber(match[9]);
+  const latestWeeklyTargetPrice = parseNumber(match[10]);
+  const ratingCount = Object.values(ratings).reduce((sum, value) => sum + value, 0);
+  if (
+    targetPrice == null ||
+    previousWeekTargetPrice == null ||
+    latestWeeklyTargetPrice == null ||
+    targetPrice <= 0 ||
+    previousWeekTargetPrice <= 0 ||
+    ratingCount <= 0 ||
+    Math.abs(targetPrice - latestWeeklyTargetPrice) > 2
+  ) {
+    return null;
+  }
+
+  return {
+    asOf: `${year}-${month}-${day}`,
+    consensus: match[2].trim(),
+    targetPrice,
+    previousWeekTargetPrice,
+    ratings,
+    sourceUrl: MINKABU_ANALYST_CONSENSUS_URL,
+    state: "live",
+  };
+}
+
+async function getMinkabuAnalystConsensus(): Promise<AnalystConsensusData> {
+  try {
+    const response = await fetch(MINKABU_ANALYST_CONSENSUS_URL, {
+      headers: {
+        Accept: "text/html,application/xhtml+xml",
+        "User-Agent": "KIOXIA-HUB/1.0 (+https://stock-dashboard-gilt-chi.vercel.app)",
+      },
+      next: { revalidate: 21_600 },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) return UNAVAILABLE_ANALYST_CONSENSUS;
+    return (
+      parseMinkabuAnalystConsensusHtml(await response.text()) ??
+      UNAVAILABLE_ANALYST_CONSENSUS
+    );
+  } catch {
+    return UNAVAILABLE_ANALYST_CONSENSUS;
   }
 }
 
@@ -539,12 +632,14 @@ async function getOfficialIr(): Promise<OfficialIrResult | null> {
 
 export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
   const fallback = generateKioxiaBundle();
-  const [officialIr, marketChart, margin, shortPositions] = await Promise.all([
-    getOfficialIr(),
-    getKioxiaMarketChart(),
-    getKioxiaMarginData(),
-    getLatestJpxShortPositionSource(),
-  ]);
+  const [officialIr, marketChart, margin, shortPositions, analystConsensus] =
+    await Promise.all([
+      getOfficialIr(),
+      getKioxiaMarketChart(),
+      getKioxiaMarginData(),
+      getLatestJpxShortPositionSource(),
+      getMinkabuAnalystConsensus(),
+    ]);
   const stock = fallback.stock;
   if (marketChart) {
     stock.price = marketChart.price;
@@ -621,6 +716,7 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
     earnings,
     margin,
     shortPositions,
+    analystConsensus,
     meta: {
       generatedAt: new Intl.DateTimeFormat("ja-JP", {
         timeZone: TOKYO_TIME_ZONE,
