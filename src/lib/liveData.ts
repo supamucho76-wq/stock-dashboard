@@ -19,6 +19,7 @@ export type DashboardSource = {
 export type DashboardMeta = {
   generatedAt: string;
   stock: DashboardSource;
+  pts: DashboardSource;
   ir: DashboardSource;
   estimates: DashboardSource;
 };
@@ -243,6 +244,12 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
         label: "株価・チャート",
         detail: "TradingView公式埋め込み（市場により遅延）",
         url: "https://www.tradingview.com/symbols/TSE-285A/",
+      },
+      pts: {
+        state: "external",
+        label: "PTS",
+        detail: "Japannext公式確認（価格再配信は未契約）",
+        url: "https://www.japannext.co.jp/ja/market",
       },
       ir: officialIr
         ? {

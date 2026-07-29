@@ -41,6 +41,7 @@ export default function DataSourceBar({ meta }: { meta: DashboardMeta }) {
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <SourceItem source={meta.stock} />
+          <SourceItem source={meta.pts} />
           <SourceItem source={meta.ir} />
           <SourceItem source={meta.estimates} />
         </div>

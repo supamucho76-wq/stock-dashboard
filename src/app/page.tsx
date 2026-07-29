@@ -11,11 +11,12 @@ import StatsGrid from "@/components/StatsGrid";
 import NewsList from "@/components/NewsList";
 import OutlookCard from "@/components/OutlookCard";
 import DataSourceBar from "@/components/DataSourceBar";
+import PtsPanel from "@/components/PtsPanel";
 
 export const metadata: Metadata = {
   title: "KIOXIA HUB | キオクシア(285A) 専用分析ターミナル",
   description:
-    "キオクシアホールディングス(285A)保有者向けの専用ダッシュボード。今日の状況・NAND市況・決算カウントダウン・株主/信用需給・マイポジションを1画面に集約。",
+    "キオクシアホールディングス(285A)保有者向けの専用ダッシュボード。株価チャート・PTS情報・公式IR・決算実績・マイポジションを1画面に集約。",
 };
 
 export default async function Home() {
@@ -29,6 +30,10 @@ export default async function Home() {
       <TodaySummaryCard today={today} isLive={meta.ir.state === "live"} />
 
       <TradingViewMarketPanel />
+
+      <PtsPanel />
+
+      <EarningsCountdownPanel earnings={earnings} />
 
       <div className="rounded-lg border border-[rgba(246,211,101,0.35)] bg-[rgba(246,211,101,0.06)] px-4 py-3 text-xs text-[#f6d365] leading-relaxed">
         以下のNAND市況、アナリスト評価、需給・株主情報、主要指標、展望は現在UI検証用のDEMOです。投資判断には使用しないでください。
@@ -47,8 +52,6 @@ export default async function Home() {
       </div>
 
       <NandMarketPanel nand={nand} />
-
-      <EarningsCountdownPanel earnings={earnings} />
 
       <ShareholderShortPanel data={shareholders} />
 
