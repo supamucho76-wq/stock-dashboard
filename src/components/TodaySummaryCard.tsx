@@ -12,17 +12,26 @@ function StatBadge({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function TodaySummaryCard({ today }: { today: TodaySummary }) {
+export default function TodaySummaryCard({
+  today,
+  isLive,
+}: {
+  today: TodaySummary;
+  isLive: boolean;
+}) {
   const isUp = today.change >= 0;
 
   return (
     <div className="glass-panel glow-border p-6 sm:p-7">
       <div className="flex items-center justify-between flex-wrap gap-2 mb-5">
         <div className="flex items-center gap-2">
-          <span className="live-dot" />
+          <span className={isLive ? "live-dot" : "demo-dot"} />
           <h2 className="panel-heading !text-[var(--neon)]">
             今日のキオクシア
           </h2>
+          <span className="mono text-[0.58rem] text-[var(--text-faint)]">
+            {isLive ? "LIVE" : "DEMO"}
+          </span>
         </div>
         <span className="text-[0.65rem] text-[var(--text-faint)]">
           <span className="mono">{today.nextEvent.date}</span> 決算まで

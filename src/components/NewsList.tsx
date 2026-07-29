@@ -19,9 +19,18 @@ export default function NewsList({ news }: { news: NewsItem[] }) {
               }`}
             />
             <div className="min-w-0">
-              <p className="text-sm text-[var(--text)] leading-snug">
-                {n.title}
-              </p>
+              {n.url ? (
+                <a
+                  href={n.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm text-[var(--text)] leading-snug hover:text-[var(--neon)] transition-colors"
+                >
+                  {n.title} <span aria-hidden="true">↗</span>
+                </a>
+              ) : (
+                <p className="text-sm text-[var(--text)] leading-snug">{n.title}</p>
+              )}
               <p className="text-[0.68rem] text-[var(--text-faint)] mt-1">
                 {n.source} · <span className="mono">{n.time}</span>
               </p>

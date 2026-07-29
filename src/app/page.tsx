@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { generateKioxiaBundle } from "@/lib/kioxiaData";
+import { getKioxiaDashboardData } from "@/lib/liveData";
 import TodaySummaryCard from "@/components/TodaySummaryCard";
 import NandMarketPanel from "@/components/NandMarketPanel";
 import EarningsCountdownPanel from "@/components/EarningsCountdownPanel";
@@ -11,6 +11,7 @@ import AnalystPanel from "@/components/AnalystPanel";
 import StatsGrid from "@/components/StatsGrid";
 import NewsList from "@/components/NewsList";
 import OutlookCard from "@/components/OutlookCard";
+import DataSourceBar from "@/components/DataSourceBar";
 
 export const metadata: Metadata = {
   title: "KIOXIA HUB | キオクシア(285A) 専用分析ターミナル",
@@ -18,12 +19,15 @@ export const metadata: Metadata = {
     "キオクシアホールディングス(285A)保有者向けの専用ダッシュボード。今日の状況・NAND市況・決算カウントダウン・株主/信用需給・マイポジションを1画面に集約。",
 };
 
-export default function Home() {
-  const { stock, today, nand, earnings, shareholders } = generateKioxiaBundle();
+export default async function Home() {
+  const { stock, today, nand, earnings, shareholders, meta } =
+    await getKioxiaDashboardData();
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-8 flex flex-col gap-6">
-      <TodaySummaryCard today={today} />
+      <DataSourceBar meta={meta} />
+
+      <TodaySummaryCard today={today} isLive={meta.stock.state === "live"} />
 
       <StockHeader data={stock} />
 

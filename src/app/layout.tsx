@@ -48,14 +48,14 @@ export default function RootLayout({
               </span>
             </Link>
             <span className="brand-tagline">
-              キオクシア(285A) 保有者専用ダッシュボード — MOCK DATA
+              キオクシア(285A) 保有者専用ダッシュボード
             </span>
           </div>
         </header>
         <main className="flex-1">{children}</main>
         <footer className="site-footer">
           <p>
-            表示データはすべてデモ用のモックデータです。実際の株価・アナリスト情報とは一致しません。投資判断の根拠にはご利用いただけません。
+            データソースの状態は画面上部に表示しています。DEMO表記の数値は実データではありません。掲載情報は投資助言ではなく、投資判断は必ず一次情報をご確認ください。
           </p>
         </footer>
       </body>

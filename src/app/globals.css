@@ -249,3 +249,12 @@ body {
   box-shadow: 0 0 10px var(--neon);
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
+
+.demo-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #f6d365;
+  box-shadow: 0 0 8px rgba(246, 211, 101, 0.55);
+}

@@ -36,6 +36,7 @@ export type NewsItem = {
   source: string;
   time: string;
   sentiment: "positive" | "neutral" | "negative";
+  url?: string;
 };
 
 export type StockData = {
