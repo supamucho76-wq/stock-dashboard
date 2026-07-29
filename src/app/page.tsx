@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const { stock, today, earnings, shareholders, meta } =
+  const { stock, today, earnings, shareholders, margin, shortPositions, meta } =
     await getKioxiaDashboardData();
 
   return (
@@ -53,7 +53,11 @@ export default async function Home() {
 
       <NandMarketPanel />
 
-      <ShareholderShortPanel data={shareholders} />
+      <ShareholderShortPanel
+        data={shareholders}
+        margin={margin}
+        shortPositions={shortPositions}
+      />
 
       <MyPositionPanel />
 

@@ -13,6 +13,12 @@ const KIOXIA_IR_URL = "https://www.kioxia-holdings.com/ja-jp/ir/news.html";
 const KIOXIA_YAHOO_CHART_URL =
   "https://query1.finance.yahoo.com/v8/finance/chart/285A.T?range=1y&interval=1d";
 const KIOXIA_YAHOO_PAGE_URL = "https://finance.yahoo.co.jp/quote/285A.T/chart";
+const KIOXIA_YAHOO_MARGIN_URL =
+  "https://finance.yahoo.co.jp/quote/285A.T/history?styl=margin";
+const JPX_MARGIN_INDEX_URL =
+  "https://www.jpx.co.jp/markets/statistics-equities/margin/05.html";
+const JPX_SHORT_POSITION_INDEX_URL =
+  "https://www.jpx.co.jp/markets/public/short-selling/index.html";
 const TOKYO_TIME_ZONE = "Asia/Tokyo";
 const FY2026_BASIC_EPS = 1_024.07;
 const FY2026_BOOK_VALUE_PER_SHARE = 2_561.74;
@@ -49,6 +55,51 @@ export type DashboardMeta = {
 
 export type KioxiaDashboardData = KioxiaBundle & {
   meta: DashboardMeta;
+  margin: MarginBalanceData;
+  shortPositions: ShortPositionSource;
+};
+
+export type MarginBalanceData = {
+  asOf: string;
+  sellBalance: number;
+  buyBalance: number;
+  sellChange: number;
+  buyChange: number;
+  ratio: number;
+  sellChangePercent: number;
+  buyChangePercent: number;
+  sourceUrl: string;
+  historyUrl: string;
+  state: "live" | "fallback";
+  verifiedByJpx: boolean;
+};
+
+export type ShortPositionSource = {
+  asOf: string;
+  sourceUrl: string;
+  state: "live" | "fallback";
+};
+
+const FALLBACK_MARGIN_DATA: MarginBalanceData = {
+  asOf: "2026-07-24",
+  sellBalance: 542_800,
+  buyBalance: 11_385_700,
+  sellChange: 164_900,
+  buyChange: -2_502_200,
+  ratio: round2(11_385_700 / 542_800),
+  sellChangePercent: round2((164_900 / (542_800 - 164_900)) * 100),
+  buyChangePercent: round2((-2_502_200 / (11_385_700 + 2_502_200)) * 100),
+  sourceUrl:
+    "https://www.jpx.co.jp/markets/statistics-equities/margin/tvdivq0000001rnl-att/syumatsu2026072400.pdf",
+  historyUrl: KIOXIA_YAHOO_MARGIN_URL,
+  state: "fallback",
+  verifiedByJpx: true,
+};
+
+const FALLBACK_SHORT_POSITION_SOURCE: ShortPositionSource = {
+  asOf: "2026-07-29",
+  sourceUrl: JPX_SHORT_POSITION_INDEX_URL,
+  state: "fallback",
 };
 
 type OfficialIrResult = {
@@ -97,8 +148,154 @@ type YahooChartPayload = {
   };
 };
 
+type JpxMarginSource = {
+  asOf: string;
+  sourceUrl: string;
+};
+
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function parseNumber(value: string): number | null {
+  const normalized = value.replace(/[,+\s]/g, "");
+  if (!/^-?\d+(?:\.\d+)?$/.test(normalized)) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function parseYahooMarginHtml(html: string): Omit<
+  MarginBalanceData,
+  "sourceUrl" | "historyUrl" | "state" | "verifiedByJpx"
+> | null {
+  const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)];
+  for (const row of rows) {
+    const cells = [...row[1].matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(
+      (cell) => decodeHtml(cell[1]),
+    );
+    if (cells.length < 6 || !/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(cells[0])) continue;
+
+    const [year, month, day] = cells[0].split("/");
+    const sellBalance = parseNumber(cells[1]);
+    const buyBalance = parseNumber(cells[2]);
+    const sellChange = parseNumber(cells[3]);
+    const buyChange = parseNumber(cells[4]);
+    const ratio = parseNumber(cells[5]);
+    if (
+      sellBalance == null ||
+      buyBalance == null ||
+      sellChange == null ||
+      buyChange == null ||
+      ratio == null ||
+      sellBalance <= 0 ||
+      buyBalance <= 0 ||
+      Math.abs(buyBalance / sellBalance - ratio) > 0.1
+    ) {
+      continue;
+    }
+
+    const previousSellBalance = sellBalance - sellChange;
+    const previousBuyBalance = buyBalance - buyChange;
+    return {
+      asOf: `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`,
+      sellBalance,
+      buyBalance,
+      sellChange,
+      buyChange,
+      ratio: round2(ratio),
+      sellChangePercent: previousSellBalance
+        ? round2((sellChange / previousSellBalance) * 100)
+        : 0,
+      buyChangePercent: previousBuyBalance
+        ? round2((buyChange / previousBuyBalance) * 100)
+        : 0,
+    };
+  }
+  return null;
+}
+
+function parseLatestJpxMarginSource(html: string): JpxMarginSource | null {
+  const matches = [...html.matchAll(/href="([^"]*syumatsu(\d{8})00\.pdf)"/gi)];
+  const latest = matches
+    .map((match) => ({ href: decodeHtml(match[1]), date: match[2] }))
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (!latest) return null;
+
+  return {
+    asOf: `${latest.date.slice(0, 4)}-${latest.date.slice(4, 6)}-${latest.date.slice(6, 8)}`,
+    sourceUrl: new URL(latest.href, JPX_MARGIN_INDEX_URL).toString(),
+  };
+}
+
+async function getKioxiaMarginData(): Promise<MarginBalanceData> {
+  try {
+    const requestOptions = {
+      headers: {
+        Accept: "text/html,application/xhtml+xml",
+        "User-Agent": "KIOXIA-HUB/1.0 (+https://stock-dashboard-gilt-chi.vercel.app)",
+      },
+      next: { revalidate: 21_600 },
+      signal: AbortSignal.timeout(8_000),
+    } as const;
+    const [yahooResponse, jpxResponse] = await Promise.all([
+      fetch(KIOXIA_YAHOO_MARGIN_URL, requestOptions),
+      fetch(JPX_MARGIN_INDEX_URL, requestOptions),
+    ]);
+    if (!yahooResponse.ok) return FALLBACK_MARGIN_DATA;
+
+    const parsed = parseYahooMarginHtml(await yahooResponse.text());
+    if (!parsed) return FALLBACK_MARGIN_DATA;
+
+    const jpxSource = jpxResponse.ok
+      ? parseLatestJpxMarginSource(await jpxResponse.text())
+      : null;
+    const verifiedByJpx = jpxSource?.asOf === parsed.asOf;
+    return {
+      ...parsed,
+      sourceUrl: verifiedByJpx ? jpxSource.sourceUrl : KIOXIA_YAHOO_MARGIN_URL,
+      historyUrl: KIOXIA_YAHOO_MARGIN_URL,
+      state: "live",
+      verifiedByJpx,
+    };
+  } catch {
+    return FALLBACK_MARGIN_DATA;
+  }
+}
+
+function parseLatestJpxShortPositionSource(html: string): ShortPositionSource | null {
+  const matches = [
+    ...html.matchAll(/href="([^"]*\/(\d{8})_Short_Positions\.xls)"/gi),
+  ];
+  const latest = matches
+    .map((match) => ({ href: decodeHtml(match[1]), date: match[2] }))
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (!latest) return null;
+
+  return {
+    asOf: `${latest.date.slice(0, 4)}-${latest.date.slice(4, 6)}-${latest.date.slice(6, 8)}`,
+    sourceUrl: new URL(latest.href, JPX_SHORT_POSITION_INDEX_URL).toString(),
+    state: "live",
+  };
+}
+
+async function getLatestJpxShortPositionSource(): Promise<ShortPositionSource> {
+  try {
+    const response = await fetch(JPX_SHORT_POSITION_INDEX_URL, {
+      headers: {
+        Accept: "text/html,application/xhtml+xml",
+        "User-Agent": "KIOXIA-HUB/1.0 (+https://stock-dashboard-gilt-chi.vercel.app)",
+      },
+      next: { revalidate: 3_600 },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) return FALLBACK_SHORT_POSITION_SOURCE;
+    return (
+      parseLatestJpxShortPositionSource(await response.text()) ??
+      FALLBACK_SHORT_POSITION_SOURCE
+    );
+  } catch {
+    return FALLBACK_SHORT_POSITION_SOURCE;
+  }
 }
 
 function timestampToTokyoDate(timestamp: number): string {
@@ -342,9 +539,11 @@ async function getOfficialIr(): Promise<OfficialIrResult | null> {
 
 export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
   const fallback = generateKioxiaBundle();
-  const [officialIr, marketChart] = await Promise.all([
+  const [officialIr, marketChart, margin, shortPositions] = await Promise.all([
     getOfficialIr(),
     getKioxiaMarketChart(),
+    getKioxiaMarginData(),
+    getLatestJpxShortPositionSource(),
   ]);
   const stock = fallback.stock;
   if (marketChart) {
@@ -368,12 +567,10 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
   const news = officialIr?.news.length ? officialIr.news : stock.news;
   stock.news = news;
   fallback.shareholders.majorShareholders = OFFICIAL_MAJOR_SHAREHOLDERS;
-  fallback.shareholders.marginSellBalance = 542_800;
-  fallback.shareholders.marginBuyBalance = 11_385_700;
-  fallback.shareholders.marginRatio = round2(11_385_700 / 542_800);
-  fallback.shareholders.weekOverWeekChangePercent = round2(
-    (-2_502_200 / (11_385_700 + 2_502_200)) * 100,
-  );
+  fallback.shareholders.marginSellBalance = margin.sellBalance;
+  fallback.shareholders.marginBuyBalance = margin.buyBalance;
+  fallback.shareholders.marginRatio = margin.ratio;
+  fallback.shareholders.weekOverWeekChangePercent = margin.buyChangePercent;
 
   const today = {
     ...fallback.today,
@@ -422,6 +619,8 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
     stock,
     today,
     earnings,
+    margin,
+    shortPositions,
     meta: {
       generatedAt: new Intl.DateTimeFormat("ja-JP", {
         timeZone: TOKYO_TIME_ZONE,
