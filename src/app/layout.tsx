@@ -55,7 +55,7 @@ export default function RootLayout({
         <main className="flex-1">{children}</main>
         <footer className="site-footer">
           <p>
-            データソースの状態は画面上部に表示しています。DEMO表記の数値は実データではありません。掲載情報は投資助言ではなく、投資判断は必ず一次情報をご確認ください。
+            データソースの状態は画面上部に表示しています。DEMO・FALLBACK表示時は外部データの取得に失敗したため参考値です。掲載情報は投資助言ではなく、投資判断は必ず一次情報をご確認ください。
           </p>
         </footer>
       </body>

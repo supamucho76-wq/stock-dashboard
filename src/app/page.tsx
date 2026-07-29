@@ -12,6 +12,7 @@ import NewsList from "@/components/NewsList";
 import OutlookCard from "@/components/OutlookCard";
 import DataSourceBar from "@/components/DataSourceBar";
 import PtsPanel from "@/components/PtsPanel";
+import MovementAnalysisPanel from "@/components/MovementAnalysisPanel";
 
 export const metadata: Metadata = {
   title: "KIOXIA HUB | キオクシア(285A) 専用分析ターミナル",
@@ -28,6 +29,7 @@ export default async function Home() {
     margin,
     shortPositions,
     analystConsensus,
+    movementAnalysis,
     meta,
   } = await getKioxiaDashboardData();
 
@@ -48,14 +50,7 @@ export default async function Home() {
       <EarningsCountdownPanel earnings={earnings} />
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-6 items-start">
-        <div className="glass-panel p-5 flex items-center justify-center min-h-[220px] text-center">
-          <div>
-            <span className="mono text-[0.62rem] text-[#f6d365]">DEMO ANALYSIS</span>
-            <p className="mt-3 text-sm text-[var(--text-dim)] max-w-xl">
-              値動き要因の自動分析は、再配信可能なニュース・市場データソースを選定後に接続します。
-            </p>
-          </div>
-        </div>
+        <MovementAnalysisPanel analysis={movementAnalysis} />
         <AnalystPanel consensus={analystConsensus} currentPrice={stock.price} />
       </div>
 

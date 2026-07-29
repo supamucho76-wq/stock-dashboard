@@ -63,6 +63,25 @@ export type KioxiaDashboardData = KioxiaBundle & {
   margin: MarginBalanceData;
   shortPositions: ShortPositionSource;
   analystConsensus: AnalystConsensusData;
+  movementAnalysis: MovementAnalysisData;
+};
+
+export type MovementAnalysisData = {
+  state: "live" | "partial";
+  headline: string;
+  summary: string;
+  factors: Array<{
+    label: string;
+    value: string;
+    detail: string;
+    tone: "up" | "down" | "neutral" | "attention";
+  }>;
+  latestDisclosure: {
+    title: string;
+    date: string;
+    source: string;
+    url?: string;
+  } | null;
 };
 
 export type MarginBalanceData = {
@@ -182,6 +201,116 @@ type JpxMarginSource = {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function signedPercent(value: number): string {
+  return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
+}
+
+function buildMovementAnalysis({
+  marketChart,
+  news,
+  earnings,
+}: {
+  marketChart: MarketChartResult | null;
+  news: NewsItem[];
+  earnings: KioxiaBundle["earnings"];
+}): MovementAnalysisData {
+  const latestDisclosure = news[0]
+    ? {
+        title: news[0].title,
+        date: news[0].time,
+        source: news[0].source,
+        url: news[0].url,
+      }
+    : null;
+
+  if (!marketChart) {
+    return {
+      state: "partial",
+      headline: "市場データを確認できません",
+      summary:
+        "株価データの取得に失敗したため、値動き材料の自動照合を一時停止しています。公式IRは下記から確認できます。",
+      factors: [
+        {
+          label: "株価反応",
+          value: "取得待ち",
+          detail: "Yahoo Finance再取得時に更新",
+          tone: "neutral",
+        },
+        {
+          label: "決算イベント",
+          value: earnings.daysUntil === 0 ? "本日" : `あと${earnings.daysUntil}日`,
+          detail: earnings.fiscalPeriod,
+          tone: earnings.daysUntil <= 7 ? "attention" : "neutral",
+        },
+      ],
+      latestDisclosure,
+    };
+  }
+
+  const latestVolume = marketChart.volumes.at(-1)?.value ?? 0;
+  const volumeRatio = marketChart.avgVolume > 0 ? latestVolume / marketChart.avgVolume : 0;
+  const absoluteMove = Math.abs(marketChart.changePercent);
+  const isUp = marketChart.changePercent > 0;
+  const isDown = marketChart.changePercent < 0;
+  const isLargeMove = absoluteMove >= 5;
+  const isVolumeElevated = volumeRatio >= 1.5;
+
+  const headline =
+    isLargeMove && isVolumeElevated
+      ? "大幅変動と出来高増加を確認"
+      : isLargeMove
+        ? "大幅な値動きを確認"
+        : isVolumeElevated
+          ? "出来高増加を確認"
+          : "株価・出来高は通常範囲内";
+
+  const volumeDescription =
+    volumeRatio >= 2
+      ? "1年平均を大きく上回る水準"
+      : volumeRatio >= 1.5
+        ? "1年平均を上回る水準"
+        : volumeRatio >= 0.75
+          ? "1年平均に近い水準"
+          : "1年平均を下回る水準";
+
+  const disclosureText = latestDisclosure
+    ? `直近の公式IRは「${latestDisclosure.title}」（${latestDisclosure.date}）です。`
+    : "直近の公式IRは取得できていません。";
+  const eventText =
+    earnings.daysUntil === 0
+      ? "決算発表は本日予定されています。"
+      : earnings.daysUntil > 0
+        ? `決算発表まであと${earnings.daysUntil}日です。`
+        : "次回決算日は公式発表待ちです。";
+
+  return {
+    state: "live",
+    headline,
+    summary: `${signedPercent(marketChart.changePercent)}、出来高は1年平均の${volumeRatio.toFixed(2)}倍です。${disclosureText}${eventText}これらは確認可能な材料で、値動きとの因果関係を示すものではありません。`,
+    factors: [
+      {
+        label: "株価反応",
+        value: signedPercent(marketChart.changePercent),
+        detail: `前日終値比 ${marketChart.change > 0 ? "+" : ""}${marketChart.change.toLocaleString("ja-JP")}円`,
+        tone: isUp ? "up" : isDown ? "down" : "neutral",
+      },
+      {
+        label: "出来高",
+        value: `${volumeRatio.toFixed(2)}倍`,
+        detail: volumeDescription,
+        tone: isVolumeElevated ? "attention" : "neutral",
+      },
+      {
+        label: "決算イベント",
+        value: earnings.daysUntil === 0 ? "本日" : `あと${earnings.daysUntil}日`,
+        detail: earnings.fiscalPeriod,
+        tone: earnings.daysUntil <= 7 ? "attention" : "neutral",
+      },
+    ],
+    latestDisclosure,
+  };
 }
 
 function parseNumber(value: string): number | null {
@@ -715,6 +844,12 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
     };
   }
 
+  const movementAnalysis = buildMovementAnalysis({
+    marketChart,
+    news: officialIr?.news ?? [],
+    earnings,
+  });
+
   return {
     ...fallback,
     stock,
@@ -723,6 +858,7 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
     margin,
     shortPositions,
     analystConsensus,
+    movementAnalysis,
     meta: {
       generatedAt: new Intl.DateTimeFormat("ja-JP", {
         timeZone: TOKYO_TIME_ZONE,
@@ -757,9 +893,13 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
             url: KIOXIA_IR_URL,
           },
       estimates: {
-        state: "demo",
-        label: "値動き要因の自動分析",
-        detail: "ニュース分析のみDEMO・その他は公式ソースへ更新済み",
+        state: movementAnalysis.state === "live" ? "external" : "unavailable",
+        label: "値動き材料チェック",
+        detail:
+          movementAnalysis.state === "live"
+            ? "株価・出来高・公式IRを自動照合（因果関係は非断定）"
+            : "市場データ取得待ち・公式IRのみ表示",
+        url: KIOXIA_YAHOO_PAGE_URL,
       },
     },
   };
