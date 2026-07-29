@@ -1,21 +1,13 @@
-import type {
-  BollingerPoint,
-  Candle,
-  NewsItem,
-  StockData,
-  VolumePoint,
-} from "./stockData";
+import type { NewsItem } from "./stockData";
 import {
   generateKioxiaBundle,
-  KIOXIA_CODE,
   type KioxiaBundle,
 } from "./kioxiaData";
 
 const KIOXIA_IR_URL = "https://www.kioxia-holdings.com/ja-jp/ir/news.html";
-const JQUANTS_BASE_URL = "https://api.jquants.com/v2";
 const TOKYO_TIME_ZONE = "Asia/Tokyo";
 
-export type SourceState = "live" | "demo" | "unavailable";
+export type SourceState = "live" | "external" | "demo" | "unavailable";
 
 export type DashboardSource = {
   state: SourceState;
@@ -44,34 +36,6 @@ type OfficialIrResult = {
     fiscalPeriod: string;
   };
 };
-
-type JQuantsBar = {
-  Date?: unknown;
-  O?: unknown;
-  H?: unknown;
-  L?: unknown;
-  C?: unknown;
-  Vo?: unknown;
-  AdjO?: unknown;
-  AdjH?: unknown;
-  AdjL?: unknown;
-  AdjC?: unknown;
-  AdjVo?: unknown;
-};
-
-type JQuantsResponse = {
-  data?: JQuantsBar[];
-  pagination_key?: string;
-};
-
-function toNumber(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim() !== "") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
-}
 
 function tokyoDateParts(date: Date): { year: number; month: number; day: number } {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -216,107 +180,10 @@ async function getOfficialIr(): Promise<OfficialIrResult | null> {
   }
 }
 
-function calculateBollinger(candles: Candle[]): BollingerPoint[] {
-  const period = 20;
-  const points: BollingerPoint[] = [];
-  for (let index = period - 1; index < candles.length; index += 1) {
-    const window = candles.slice(index - period + 1, index + 1).map((item) => item.close);
-    const middle = window.reduce((sum, value) => sum + value, 0) / period;
-    const variance = window.reduce((sum, value) => sum + (value - middle) ** 2, 0) / period;
-    const deviation = Math.sqrt(variance);
-    points.push({
-      time: candles[index].time,
-      upper: Math.round((middle + deviation * 2) * 100) / 100,
-      middle: Math.round(middle * 100) / 100,
-      lower: Math.round((middle - deviation * 2) * 100) / 100,
-    });
-  }
-  return points;
-}
-
-async function getJQuantsStock(fallback: StockData): Promise<StockData | null> {
-  const apiKey = process.env.JQUANTS_API_KEY;
-  if (!apiKey) return null;
-
-  const end = new Date();
-  const start = new Date(end);
-  start.setUTCDate(start.getUTCDate() - 400);
-  const params = new URLSearchParams({
-    code: KIOXIA_CODE,
-    from: formatIsoDate(start),
-    to: formatIsoDate(end),
-  });
-
-  try {
-    const response = await fetch(`${JQUANTS_BASE_URL}/equities/bars/daily?${params}`, {
-      headers: { "x-api-key": apiKey },
-      next: { revalidate: 1_800 },
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!response.ok) return null;
-    const payload = (await response.json()) as JQuantsResponse;
-    const candles: Candle[] = [];
-    const volumes: VolumePoint[] = [];
-
-    for (const item of payload.data ?? []) {
-      const time = typeof item.Date === "string" ? item.Date : "";
-      const open = toNumber(item.AdjO ?? item.O);
-      const high = toNumber(item.AdjH ?? item.H);
-      const low = toNumber(item.AdjL ?? item.L);
-      const close = toNumber(item.AdjC ?? item.C);
-      const volume = toNumber(item.AdjVo ?? item.Vo);
-      if (!time || open === null || high === null || low === null || close === null) continue;
-      candles.push({ time, open, high, low, close });
-      volumes.push({
-        time,
-        value: volume ?? 0,
-        color: close >= open ? "rgba(57, 255, 148, 0.55)" : "rgba(255, 61, 113, 0.55)",
-      });
-    }
-
-    candles.sort((a, b) => a.time.localeCompare(b.time));
-    volumes.sort((a, b) => a.time.localeCompare(b.time));
-    if (candles.length < 2) return null;
-
-    const latest = candles[candles.length - 1];
-    const previous = candles[candles.length - 2];
-    const change = Math.round((latest.close - previous.close) * 100) / 100;
-    const changePercent = Math.round((change / previous.close) * 10_000) / 100;
-    const visibleCandles = candles.slice(-252);
-    const visibleDates = new Set(visibleCandles.map((item) => item.time));
-    const visibleVolumes = volumes.filter((item) => visibleDates.has(item.time));
-    const averageVolume = visibleVolumes.length
-      ? Math.round(visibleVolumes.reduce((sum, item) => sum + item.value, 0) / visibleVolumes.length)
-      : 0;
-
-    return {
-      ...fallback,
-      price: latest.close,
-      prevClose: previous.close,
-      change,
-      changePercent,
-      candles: visibleCandles,
-      volumes: visibleVolumes,
-      bollinger: calculateBollinger(visibleCandles),
-      stats: {
-        ...fallback.stats,
-        high52w: Math.max(...visibleCandles.map((item) => item.high)),
-        low52w: Math.min(...visibleCandles.map((item) => item.low)),
-        avgVolume: averageVolume,
-      },
-    };
-  } catch {
-    return null;
-  }
-}
-
 export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
   const fallback = generateKioxiaBundle();
-  const [liveStock, officialIr] = await Promise.all([
-    getJQuantsStock(fallback.stock),
-    getOfficialIr(),
-  ]);
-  const stock = liveStock ?? fallback.stock;
+  const officialIr = await getOfficialIr();
+  const stock = fallback.stock;
   const news = officialIr?.news.length ? officialIr.news : stock.news;
   stock.news = news;
 
@@ -331,9 +198,8 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
       | "中立"
       | "弱気",
     topNews: news[0]?.title ?? fallback.today.topNews,
-    reasonSummary: liveStock
-      ? `直近終値は前営業日比${stock.change >= 0 ? "+" : ""}${stock.change.toLocaleString()}円（${stock.changePercent >= 0 ? "+" : ""}${stock.changePercent.toFixed(2)}%）です。値動きの背景は、公式開示や信頼できる報道とあわせて確認してください。`
-      : "株価APIが未接続のため、値動きと出来高はデモ表示です。J-Quants APIを設定すると実データへ切り替わります。",
+    reasonSummary:
+      "株価とチャートはTradingViewの公式埋め込みで確認できます。値動きの背景は、公式開示や信頼できる報道とあわせて確認してください。",
   };
 
   const earnings = {
@@ -372,18 +238,12 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
         dateStyle: "medium",
         timeStyle: "short",
       }).format(new Date()),
-      stock: liveStock
-        ? {
-            state: "live",
-            label: "株価・出来高",
-            detail: "J-Quants API（日足・遅延データ）",
-            url: "https://www.jpx.co.jp/markets/other-data-services/j-quants-api/index.html",
-          }
-        : {
-            state: "demo",
-            label: "株価・出来高",
-            detail: process.env.JQUANTS_API_KEY ? "API取得失敗のためデモ表示" : "JQUANTS_API_KEY未設定",
-          },
+      stock: {
+        state: "external",
+        label: "株価・チャート",
+        detail: "TradingView公式埋め込み（市場により遅延）",
+        url: "https://www.tradingview.com/symbols/TSE-285A/",
+      },
       ir: officialIr
         ? {
             state: "live",
@@ -399,8 +259,8 @@ export async function getKioxiaDashboardData(): Promise<KioxiaDashboardData> {
           },
       estimates: {
         state: "demo",
-        label: "NAND・需給・アナリスト",
-        detail: "データソース未接続（デモ表示）",
+        label: "推計・市況・需給データ",
+        detail: "NAND・アナリスト・株主等はデモ表示",
       },
     },
   };

@@ -9,6 +9,7 @@ type AccountType = "NISA" | "特定口座" | "";
 type Position = {
   shares: number;
   avgCost: number;
+  currentPrice: number;
   accountType: AccountType;
   buyReasonsText: string;
   reasonsValid: boolean[];
@@ -20,6 +21,7 @@ type Position = {
 const EMPTY: Position = {
   shares: 0,
   avgCost: 0,
+  currentPrice: 0,
   accountType: "",
   buyReasonsText: "",
   reasonsValid: [],
@@ -39,11 +41,7 @@ function parseReasons(text: string): string[] {
     .filter((l) => l.length > 0);
 }
 
-export default function MyPositionPanel({
-  currentPrice,
-}: {
-  currentPrice: number;
-}) {
+export default function MyPositionPanel() {
   const [saved, setSaved] = useState<Position | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Position>(EMPTY);
@@ -52,18 +50,25 @@ export default function MyPositionPanel({
   const [sellShares, setSellShares] = useState("");
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Position;
-        setSaved(parsed);
-        setDraft(parsed);
-      } else {
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = { ...EMPTY, ...(JSON.parse(raw) as Partial<Position>) };
+          setSaved(parsed);
+          setDraft(parsed);
+        } else {
+          setEditing(true);
+        }
+      } catch {
         setEditing(true);
       }
-    } catch {
-      setEditing(true);
-    }
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   function handleSave() {
@@ -101,9 +106,9 @@ export default function MyPositionPanel({
       <div className="glass-panel p-5">
         <h3 className="panel-heading mb-4">マイポジション</h3>
         <p className="text-xs text-[var(--text-faint)] mb-5">
-          保有状況を入力すると、評価損益や売買判断の条件をこの画面で整理できます（この端末のブラウザにのみ保存され、外部には送信されません）。
+          保有状況とTradingViewで確認した現在値を入力すると、評価損益や売買判断の条件を整理できます（この端末のブラウザにのみ保存され、外部には送信されません）。
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <label className="flex flex-col gap-1.5">
             <span className="text-xs text-[var(--text-faint)]">保有株数</span>
             <input
@@ -126,6 +131,18 @@ export default function MyPositionPanel({
               }
               className="mono bg-[rgba(255,255,255,0.03)] border border-[var(--panel-border)] rounded px-3 py-2 text-sm outline-none focus:border-[var(--panel-border-strong)]"
               placeholder="2500"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs text-[var(--text-faint)]">現在値（円・手入力）</span>
+            <input
+              type="number"
+              value={draft.currentPrice || ""}
+              onChange={(e) =>
+                setDraft({ ...draft, currentPrice: Number(e.target.value) })
+              }
+              className="mono bg-[rgba(255,255,255,0.03)] border border-[var(--panel-border)] rounded px-3 py-2 text-sm outline-none focus:border-[var(--panel-border-strong)]"
+              placeholder="TradingViewで確認"
             />
           </label>
         </div>
@@ -233,6 +250,8 @@ export default function MyPositionPanel({
   }
 
   // --- 表示モード ---
+  const currentPrice = saved.currentPrice;
+  const hasCurrentPrice = currentPrice > 0;
   const currentValue = saved.shares * currentPrice;
   const investedAmount = saved.shares * saved.avgCost;
   const pnl = currentValue - investedAmount;
@@ -302,29 +321,35 @@ export default function MyPositionPanel({
         </div>
         <div>
           <p className="text-[0.65rem] text-[var(--text-faint)] mb-1">現在の評価額</p>
-          <p className="mono text-sm text-[var(--text)]">{yen(currentValue)}</p>
+          <p className="mono text-sm text-[var(--text)]">
+            {hasCurrentPrice ? yen(currentValue) : "現在値未入力"}
+          </p>
         </div>
         <div>
           <p className="text-[0.65rem] text-[var(--text-faint)] mb-1">評価損益</p>
-          <p className={`mono text-sm ${pnl >= 0 ? "text-up" : "text-down"}`}>
-            {pnl >= 0 ? "+" : ""}
-            {yen(pnl)}（{pnl >= 0 ? "+" : ""}
-            {pnlPercent.toFixed(1)}%）
-          </p>
+          {hasCurrentPrice ? (
+            <p className={`mono text-sm ${pnl >= 0 ? "text-up" : "text-down"}`}>
+              {pnl >= 0 ? "+" : ""}
+              {yen(pnl)}（{pnl >= 0 ? "+" : ""}
+              {pnlPercent.toFixed(1)}%）
+            </p>
+          ) : (
+            <p className="text-xs text-[var(--text-faint)]">編集から現在値を入力</p>
+          )}
         </div>
       </div>
 
-      <div className="mb-6 text-xs text-[var(--text-dim)]">
+      {hasCurrentPrice && <div className="mb-6 text-xs text-[var(--text-dim)]">
         損益分岐点: <span className="mono text-[var(--text)]">{yen(breakeven)}</span>
         {"　"}現在株価から損益分岐点までの上昇率:{" "}
         <span className={`mono ${upsideToBreakeven <= 0 ? "text-up" : "text-down"}`}>
           {upsideToBreakeven >= 0 ? "+" : ""}
           {upsideToBreakeven.toFixed(1)}%
         </span>
-      </div>
+      </div>}
 
       {/* シナリオ試算 */}
-      <div className="mb-6">
+      {hasCurrentPrice && <div className="mb-6">
         <p className="text-xs text-[var(--text-faint)] mb-2.5">
           株価が動いた場合の損益シミュレーション
         </p>
@@ -352,7 +377,7 @@ export default function MyPositionPanel({
             </div>
           ))}
         </div>
-      </div>
+      </div>}
 
       {/* 買い増しシミュレーション */}
       <div className="mb-6 rounded-lg border border-[var(--panel-border)] p-4">
@@ -377,7 +402,7 @@ export default function MyPositionPanel({
               value={addPrice}
               onChange={(e) => setAddPrice(e.target.value)}
               className="mono bg-[rgba(255,255,255,0.03)] border border-[var(--panel-border)] rounded px-2 py-1.5 text-sm w-28 outline-none"
-              placeholder={String(Math.round(currentPrice))}
+              placeholder={hasCurrentPrice ? String(Math.round(currentPrice)) : "購入予定価格"}
             />
           </label>
           {newAvgAfterAdd !== null && (
@@ -404,7 +429,7 @@ export default function MyPositionPanel({
               placeholder="50"
             />
           </label>
-          {realizedPnlOnSell !== null && (
+          {realizedPnlOnSell !== null && hasCurrentPrice && (
             <p className="text-xs text-[var(--text-dim)]">
               売却後の残り保有: {remainingAfterSell.toLocaleString()}株 / 実現損益（現在値ベース）:{" "}
               <span className={`mono ${realizedPnlOnSell >= 0 ? "text-up" : "text-down"}`}>

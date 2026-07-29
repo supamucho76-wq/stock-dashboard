@@ -2,12 +2,14 @@ import type { DashboardMeta, DashboardSource } from "@/lib/liveData";
 
 const STATE_STYLE: Record<DashboardSource["state"], string> = {
   live: "border-[rgba(57,255,148,0.35)] bg-[rgba(57,255,148,0.08)] text-[var(--neon-soft)]",
+  external: "border-[rgba(67,232,255,0.35)] bg-[rgba(67,232,255,0.08)] text-[var(--cyan)]",
   demo: "border-[rgba(246,211,101,0.35)] bg-[rgba(246,211,101,0.08)] text-[#f6d365]",
   unavailable: "border-[rgba(255,61,113,0.35)] bg-[rgba(255,61,113,0.08)] text-[var(--down)]",
 };
 
 const STATE_LABEL: Record<DashboardSource["state"], string> = {
   live: "LIVE",
+  external: "EMBED",
   demo: "DEMO",
   unavailable: "FALLBACK",
 };
