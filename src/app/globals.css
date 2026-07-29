@@ -130,6 +130,36 @@ body {
   letter-spacing: 0.04em;
   color: var(--text-faint);
 }
+.creator-link {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  padding: 0.4rem 0.7rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: all 0.18s ease;
+}
+.creator-link:hover {
+  border-color: var(--panel-border-strong);
+  color: var(--cyan);
+  box-shadow: 0 0 18px -6px rgba(67, 232, 255, 0.55);
+}
+.creator-x {
+  display: inline-grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
 
 .site-footer {
   border-top: 1px solid var(--panel-border);
@@ -138,6 +168,15 @@ body {
   font-size: 0.72rem;
   color: var(--text-faint);
   font-family: var(--font-jp), sans-serif;
+}
+.footer-creator {
+  display: inline-flex;
+  margin-bottom: 0.65rem;
+  color: var(--cyan);
+  text-decoration: none;
+}
+.footer-creator:hover {
+  color: var(--neon-soft);
 }
 
 /* --- 共通パーツ --- */
